@@ -1,0 +1,16 @@
+{
+  "name": "Insight",
+  "details": "Insight Power-Up for Trello - Analytics, tracking, and board intelligence.",
+  "icon": {
+    "url": "./icons/icon.svg"
+  },
+  "author": "Insight Team",
+  "capabilities": [
+    "authorization-status",
+    "show-authorization",
+    "board-buttons",
+    "show-settings"
+  ],
+  "connectorName": "Insight",
+  "tags": ["analytics", "productivity", "insights", "reporting"]
+}
