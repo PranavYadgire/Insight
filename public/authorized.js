@@ -1,9 +1,6 @@
 (function () {
-  // Trello OAuth redirects to this page with the token in the URL hash:
-  // e.g. https://<domain>/authorized.html#token=ATTA...
-  var hash = window.location.hash.substring(1);
-  var params = new URLSearchParams(hash);
-  var token = params.get("token");
+  // Trello returns the authorization token in the URL hash.
+  var token = window.location.hash;
 
   var titleEl = document.getElementById("status-title");
   var descEl = document.getElementById("status-desc");
@@ -11,38 +8,55 @@
 
   if (!token) {
     if (spinnerEl) spinnerEl.style.display = "none";
-    if (titleEl) titleEl.textContent = "Authorization Failed";
+
+    if (titleEl) {
+      titleEl.textContent = "Authorization Failed";
+    }
+
     if (descEl) {
-      descEl.textContent = "No token was received from Trello. You can safely close this window and try again.";
+      descEl.textContent =
+        "No authorization token was received from Trello.";
       descEl.style.color = "#f87168";
     }
+
     return;
   }
 
-  // Remove the token from the browser address bar and history to prevent credential exposure
-  if (window.history && window.history.replaceState) {
-    window.history.replaceState(null, "", window.location.pathname);
+  // Send the token back to t.authorize().
+  try {
+    if (
+      window.opener &&
+      typeof window.opener.authorize === "function"
+    ) {
+      window.opener.authorize(token);
+    } else {
+      // Trello's documented fallback.
+      localStorage.setItem("token", token);
+    }
+  } catch (e) {
+    console.warn("Authorization callback error:", e);
+
+    try {
+      localStorage.setItem("token", token);
+    } catch (storageError) {
+      console.warn("Could not save authorization token:", storageError);
+    }
   }
 
-  // Post the token securely to the opener window (auth.html popup)
-  if (window.opener) {
-    window.opener.postMessage(
-      {
-        source: "insight-auth",
-        token: token,
-      },
-      window.location.origin
-    );
+  if (spinnerEl) {
+    spinnerEl.style.display = "none";
   }
 
-  if (titleEl) titleEl.textContent = "Successfully Connected!";
-  if (descEl) descEl.textContent = "Insight is authorized. Closing this window…";
+  if (titleEl) {
+    titleEl.textContent = "Successfully Connected!";
+  }
 
-  // Attempt to close the popup window automatically
-  window.close();
+  if (descEl) {
+    descEl.textContent =
+      "Insight is authorized. Closing this window…";
+  }
 
-  // If window.close() is blocked by browser policy, advise user they can close it manually
   setTimeout(function () {
-    if (descEl) descEl.textContent = "You can safely close this window now.";
-  }, 500);
+    window.close();
+  }, 1000);
 })();

@@ -32,32 +32,41 @@ TrelloPowerUp.initialize({
   },
 
   // Adds an Insight button in the top board header
-  "board-buttons": function () {
-    return [
-      {
-        icon: {
-          dark: ICON_URL,
-          light: ICON_URL,
-        },
-        text: "Insight",
-        callback: async function (t) {
-          const authorized = await isAuthorized(t);
-          if (!authorized) {
-            return t.popup({
-              title: "Authorize Insight",
-              url: "./auth.html",
-              height: 320,
-            });
-          }
+ "board-buttons": function () {
+  return [
+    {
+      icon: {
+        dark: ICON_URL,
+        light: ICON_URL,
+      },
+      text: "Insight",
 
-          // Once authorized, alert or open the main Insight feature modal when ready
+      callback: async function (t) {
+        const authorized = await isAuthorized(t);
+
+        if (!authorized) {
           return t.popup({
-            title: "Insight",
+            title: "Authorize Insight",
             url: "./auth.html",
             height: 320,
+
+            callback: function (t) {
+              return t.modal({
+                title: "Insight",
+                url: "./dashboard.html",
+                fullscreen: true,
+              });
+            },
           });
-        },
+        }
+
+        return t.modal({
+          title: "Insight",
+          url: "./dashboard.html",
+          fullscreen: true,
+        });
       },
-    ];
-  },
+    },
+  ];
+},
 });

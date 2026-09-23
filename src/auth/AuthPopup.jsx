@@ -43,6 +43,46 @@ export default function AuthPopup({ t }) {
     return () => window.removeEventListener("message", handleMessage);
   }, [t]);
 
+    // Fallback listener for authorization popup communication
+  useEffect(() => {
+    let channel;
+
+    try {
+      channel = new BroadcastChannel("insight-auth-channel");
+
+      channel.onmessage = async function (event) {
+        if (!event.data || event.data.source !== AUTH_MESSAGE_SOURCE) {
+          return;
+        }
+
+        if (!event.data.token) {
+          setStatus("error");
+          setErrorMessage("No authorization token received from Trello.");
+          return;
+        }
+
+        try {
+          await saveToken(t, event.data.token);
+          setStatus("success");
+        } catch (err) {
+          setStatus("error");
+          setErrorMessage(
+            "Failed to store authorization credentials: " +
+              (err.message || "Unknown error")
+          );
+        }
+      };
+    } catch (err) {
+      console.warn("BroadcastChannel unavailable:", err);
+    }
+
+    return () => {
+      if (channel) {
+        channel.close();
+      }
+    };
+  }, [t]);
+
   // Keep the popup height snugly fit to content so no scrollbars appear
   useEffect(() => {
     if (t && typeof t.sizeTo === "function") {
@@ -50,35 +90,39 @@ export default function AuthPopup({ t }) {
     }
   }, [t, status]);
 
-  function handleAuthorize() {
-    setStatus("waiting");
-    setErrorMessage("");
+ async function handleAuthorize() {
+  setStatus("waiting");
+  setErrorMessage("");
 
+  try {
     const returnUrl = `${window.location.origin}/authorized.html`;
     const authUrl = buildAuthorizeUrl(returnUrl);
 
-    const width = 580;
-    const height = 750;
-
-    // Use monitor screen dimensions (window.screen), NOT iframe window.innerWidth
-    const screenWidth = window.screen?.availWidth || window.screen?.width || 1280;
-    const screenHeight = window.screen?.availHeight || window.screen?.height || 800;
-
-    const left = Math.max(0, Math.round((screenWidth - width) / 2));
-    const top = Math.max(0, Math.round((screenHeight - height) / 2));
-
-    popupRef.current = window.open(
-      authUrl,
-      "trelloAuthPopup",
-      `width=${width},height=${height},left=${left},top=${top},menubar=no,toolbar=no,location=no,status=no,resizable=yes,scrollbars=yes`
-    );
-
-    // If popup was blocked by browser pop-up blocker
-    if (!popupRef.current || popupRef.current.closed || typeof popupRef.current.closed === "undefined") {
-      setStatus("error");
-      setErrorMessage("Popup was blocked by your browser. Please allow popups for this site and try again.");
+    if (!t || typeof t.authorize !== "function") {
+      throw new Error("Trello authorization is not available.");
     }
+
+    const token = await t.authorize(authUrl, {
+      width: 580,
+      height: 750,
+    });
+
+    if (!token) {
+      throw new Error("No authorization token was received.");
+    }
+
+    await saveToken(t, token);
+
+    setStatus("success");
+  } catch (err) {
+    console.error("[Insight] Authorization failed:", err);
+
+    setStatus("error");
+    setErrorMessage(
+      err?.message || "Authorization failed. Please try again."
+    );
   }
+}
 
   if (status === "success") {
     return (
@@ -86,21 +130,18 @@ export default function AuthPopup({ t }) {
         <div className="auth-success-circle">
           <CheckIcon width={26} height={26} />
         </div>
-        <h3 className="auth-title">Connected to {APP_NAME}</h3>
-        <p className="auth-subtitle" style={{ marginBottom: "16px" }}>
+<h3 className="auth-title">TEST VERSION 123</h3>        <p className="auth-subtitle" style={{ marginBottom: "16px" }}>
           Your Trello account is connected securely.
         </p>
-        <button
-          type="button"
-          onClick={() => {
-            if (t && typeof t.closePopup === "function") {
-              t.closePopup();
-            }
-          }}
-          className="auth-btn-primary"
-        >
-          Continue
-        </button>
+     <button
+  type="button"
+  onClick={() => {
+    alert("CONTINUE BUTTON WORKS");
+  }}
+  className="auth-btn-primary"
+>
+  Continue
+</button>
       </div>
     );
   }
@@ -112,8 +153,7 @@ export default function AuthPopup({ t }) {
           <InsightIcon width={22} height={22} />
         </div>
         <div>
-          <h3 className="auth-title">Connect {APP_NAME}</h3>
-          <p className="auth-subtitle">Trello Authorization</p>
+<h3 className="auth-title">TEST VERSION 123</h3>          <p className="auth-subtitle">Trello Authorization</p>
         </div>
       </div>
 

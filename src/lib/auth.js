@@ -63,14 +63,15 @@ export function buildAuthorizeUrl(returnUrl) {
     );
   }
 
-  const params = new URLSearchParams({
-    expiration: "never",
-    name: APP_NAME,
-    scope: "read,write",
-    response_type: "token",
-    key: APP_KEY || "",
-    return_url: returnUrl,
-  });
+ const params = new URLSearchParams({
+  expiration: "never",
+  name: APP_NAME,
+  scope: "read,write",
+  response_type: "token",
+  callback_method: "fragment",
+  key: APP_KEY || "",
+  return_url: returnUrl,
+});
 
   return `https://trello.com/1/authorize?${params.toString()}`;
 }

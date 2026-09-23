@@ -11,10 +11,11 @@ export default defineConfig({
   build: {
     rollupOptions: {
       input: {
-        main: resolve(__dirname, "index.html"),
-        powerup: resolve(__dirname, "powerup.html"),
-        auth: resolve(__dirname, "auth.html"),
-      },
+  main: resolve(__dirname, "index.html"),
+  powerup: resolve(__dirname, "powerup.html"),
+  auth: resolve(__dirname, "auth.html"),
+  dashboard: resolve(__dirname, "dashboard.html"),
+},
     },
   },
   server: {
