@@ -54,7 +54,7 @@ TrelloPowerUp.initialize({
               return t.modal({
                 title: "Insight",
                 url: "./dashboard.html",
-                fullscreen: true,
+                
               });
             },
           });
@@ -63,7 +63,7 @@ TrelloPowerUp.initialize({
         return t.modal({
           title: "Insight",
           url: "./dashboard.html",
-          fullscreen: true,
+          
         });
       },
     },
