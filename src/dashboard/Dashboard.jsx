@@ -761,8 +761,7 @@ const [refreshing, setRefreshing] = useState(false);
 
       const board = await t.board("members");
 
-      console.log("BOARD MEMBERS:", board);
-
+console.log("BOARD MEMBERS JSON:", JSON.stringify(board.members, null, 2));
       await t.closeModal();
     } catch (error) {
       console.error("VIEW ON BOARD ERROR:", error);
