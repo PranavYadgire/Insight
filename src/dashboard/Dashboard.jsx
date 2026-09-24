@@ -9,11 +9,11 @@ const sampleData = {
   },
 
   stages: [
-    { name: "Planning", count: 5 },
-    { name: "In Progress", count: 8 },
-    { name: "Review", count: 6 },
-    { name: "Completed", count: 5 },
-  ],
+  { name: "Planning", count: 5 },
+  { name: "In Progress", count: 8 },
+  { name: "Review", count: 6 },
+  { name: "Completed", count: 3 },
+],
 
   team: [
     { name: "Surbhi", count: 8 },
@@ -45,13 +45,62 @@ const sampleData = {
       date: "No due date",
     },
   ],
+
+    stageCards: {
+    Planning: [
+      { name: "Define campaign goals", date: "Sep 18", member: "S" },
+      { name: "Identify target audience", date: "Sep 20", member: "A" },
+      { name: "Create campaign brief", date: "Sep 22", member: "R" },
+      { name: "Set budget", date: "Sep 25", member: "S" },
+      { name: "Align stakeholders", date: "Sep 26", member: "A" },
+    ],
+
+    "In Progress": [
+      { name: "Design creatives", date: "Sep 21", member: "S" },
+      { name: "Write ad copy", date: "Sep 23", member: "A" },
+      { name: "Build landing page", date: "Sep 24", member: "R" },
+      { name: "Set up tracking", date: "Sep 25", member: "R" },
+      { name: "Test creatives", date: "Sep 27", member: "P" },
+    ],
+  },
+  teamCards: {
+  Surbhi: [
+    {
+      name: "Define campaign goals",
+      date: "Sep 18",
+      stage: "Planning",
+    },
+    {
+      name: "Review content calendar",
+      date: "Sep 19",
+      stage: "Planning",
+    },
+    {
+      name: "Approve ad creatives",
+      date: "Sep 22",
+      stage: "In Progress",
+    },
+    {
+      name: "Finalize media plan",
+      date: "Sep 24",
+      stage: "Review",
+    },
+    {
+      name: "Coordinate with agency",
+      date: "Sep 26",
+      stage: "Review",
+    },
+  ],
+},
 };
 
 export default function Dashboard({ t }) {
   const [activeTab, setActiveTab] = useState("Overview");
-  const [sortBy, setSortBy] = useState("Due date — Oldest first");
-  const [selectedCard, setSelectedCard] = useState(null);
-  const [refreshing, setRefreshing] = useState(false);
+const [sortBy, setSortBy] = useState("Due date — Oldest first");
+const [selectedCard, setSelectedCard] = useState(null);
+const [showOverdueModal, setShowOverdueModal] = useState(false);
+const [showDueWeekModal, setShowDueWeekModal] = useState(false);
+const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -78,7 +127,6 @@ export default function Dashboard({ t }) {
           </div>
         </div>
 
-        <button style={styles.closeButton}>×</button>
       </div>
 
       {/* TABS */}
@@ -327,136 +375,808 @@ export default function Dashboard({ t }) {
 
       {/* ================= BY STAGE ================= */}
       {activeTab === "By Stage" && (
-        <div style={styles.panel}>
-          <h2 style={styles.panelTitle}>Work by Stage</h2>
+  <>
+    {/* TOP BY-STAGE SECTION */}
+    <div style={styles.stageTopGrid}>
 
+      {/* CARDS BY STAGE */}
+      <div style={styles.stageChartPanel}>
+        <h2 style={styles.panelTitle}>Cards by Stage</h2>
+
+        <div style={styles.chartSubtitle}>
+          Total 24 cards
+        </div>
+
+        <div style={styles.chartArea}>
           {sampleData.stages.map((stage) => (
-            <div key={stage.name} style={styles.detailRow}>
-              <div style={styles.detailHeader}>
-                <span>{stage.name}</span>
-                <strong>{stage.count} cards</strong>
-              </div>
+            <div key={stage.name} style={styles.chartColumn}>
 
-              <div style={styles.largeProgressBackground}>
-                <div
-                  style={{
-                    ...styles.progressBar,
-                    height: "100%",
-                    background:
-                      stage.name === "Planning"
-                        ? "#0c66e4"
-                        : stage.name === "In Progress"
-                        ? "#8b5cf6"
-                        : stage.name === "Review"
-                        ? "#f59e0b"
-                        : "#22c55e",
-                    width: `${
-                      (stage.count / sampleData.overview.total) * 100
-                    }%`,
-                  }}
-                />
-              </div>
+              <strong style={styles.chartValue}>
+                {stage.count}
+              </strong>
+
+              <div
+                style={{
+                  ...styles.chartBar,
+                  height: `${stage.count * 12}px`,
+                  background:
+                    stage.name === "Planning"
+                      ? "#2f80ed"
+                      : stage.name === "In Progress"
+                      ? "#8b5cf6"
+                      : stage.name === "Review"
+                      ? "#f59e0b"
+                      : "#22c55e",
+                }}
+              />
+
+              <span style={styles.chartLabel}>
+                {stage.name}
+              </span>
+
             </div>
           ))}
         </div>
-      )}
+      </div>
+
+      {/* STAGE BREAKDOWN */}
+      <div style={styles.stageBreakdownPanel}>
+        <h2 style={styles.panelTitle}>Stage breakdown</h2>
+
+        {sampleData.stages.map((stage) => (
+          <div
+            key={stage.name}
+            style={styles.breakdownRow}
+          >
+            <div style={styles.breakdownTop}>
+              <span>{stage.name}</span>
+
+              <span>
+                <strong>{stage.count} cards</strong>
+                <span style={styles.percentage}>
+                  {Math.round(
+                    (stage.count / sampleData.overview.total) * 100
+                  )}
+                  %
+                </span>
+              </span>
+            </div>
+
+            <div style={styles.progressBackground}>
+              <div
+                style={{
+                  ...styles.progressBar,
+                  background:
+                    stage.name === "Planning"
+                      ? "#2f80ed"
+                      : stage.name === "In Progress"
+                      ? "#8b5cf6"
+                      : stage.name === "Review"
+                      ? "#f59e0b"
+                      : "#22c55e",
+                  width: `${
+                    (stage.count / sampleData.overview.total) * 100
+                  }%`,
+                }}
+              />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+
+    {/* STAGE CARD LISTS */}
+    <div style={styles.stageCardsGrid}>
+
+      {/* PLANNING */}
+      <div style={styles.stageCardPanel}>
+        <div style={styles.stageCardHeader}>
+          <div>
+            <span
+              style={{
+                ...styles.stageDot,
+                background: "#2f80ed",
+              }}
+            />
+
+            <strong>
+              Cards in Planning (5)
+            </strong>
+          </div>
+
+          <button style={styles.viewAllButton}>
+            View all →
+          </button>
+        </div>
+
+        {sampleData.stageCards.Planning.map((card) => (
+          <div
+            key={card.name}
+            style={styles.cardListRow}
+          >
+            <span>{card.name}</span>
+
+            <div style={styles.cardMeta}>
+              <span>▣ {card.date}</span>
+
+              <span
+                style={{
+                  ...styles.cardMember,
+                  background: "#64748b",
+                }}
+              >
+                {card.member}
+              </span>
+
+              <span style={styles.arrow}>›</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* IN PROGRESS */}
+      <div style={styles.stageCardPanel}>
+        <div style={styles.stageCardHeader}>
+          <div>
+            <span
+              style={{
+                ...styles.stageDot,
+                background: "#8b5cf6",
+              }}
+            />
+
+            <strong>
+              Cards in In Progress (8)
+            </strong>
+          </div>
+
+          <button style={styles.viewAllButton}>
+            View all →
+          </button>
+        </div>
+
+        {sampleData.stageCards["In Progress"].map((card) => (
+          <div
+            key={card.name}
+            style={styles.cardListRow}
+          >
+            <span>{card.name}</span>
+
+            <div style={styles.cardMeta}>
+              <span>▣ {card.date}</span>
+
+              <span
+                style={{
+                  ...styles.cardMember,
+                  background:
+                    card.member === "S"
+                      ? "#0c66e4"
+                      : card.member === "A"
+                      ? "#0c66e4"
+                      : card.member === "R"
+                      ? "#64748b"
+                      : "#8b5cf6",
+                }}
+              >
+                {card.member}
+              </span>
+
+              <span style={styles.arrow}>›</span>
+            </div>
+          </div>
+        ))}
+
+        <div style={styles.moreCards}>
+          +3 more cards
+        </div>
+      </div>
+    </div>
+
+    {/* TIP */}
+    <div style={styles.tip}>
+      <span style={styles.tipIcon}>♧</span>
+
+      <span>
+        <strong>Tip:</strong> Click on any stage or card to open it on your board.
+      </span>
+    </div>
+  </>
+)}
 
       {/* ================= TEAM ================= */}
       {activeTab === "Team" && (
-        <div style={styles.panel}>
-          <h2 style={styles.panelTitle}>Team Workload</h2>
+  <>
+    <div style={styles.teamMainGrid}>
 
-          {sampleData.team.map((member) => (
-            <div key={member.name} style={styles.teamDetailRow}>
-              <div style={styles.memberInfo}>
-                <span
-                  style={{
-                    ...styles.memberAvatar,
-                    background:
-                      member.name === "Surbhi"
-                        ? "#0c66e4"
-                        : member.name === "Amit"
-                        ? "#8b5cf6"
-                        : member.name === "Rahul"
-                        ? "#f59e0b"
-                        : member.name === "Priya"
-                        ? "#22c55e"
-                        : "#dfe1e6",
-                    color:
-                      member.name === "Unassigned"
-                        ? "#5e6c84"
-                        : "#ffffff",
-                  }}
-                >
-                  {member.name === "Unassigned"
-                    ? "•"
-                    : member.name.charAt(0)}
-                </span>
+      {/* LEFT: TEAM WORKLOAD */}
+      <div style={styles.teamWorkloadPanel}>
 
-                <span>{member.name}</span>
-              </div>
+        <div style={styles.teamPanelHeader}>
+          <div>
+            <h2 style={styles.panelTitle}>Team workload</h2>
 
-              <strong>{member.count} cards</strong>
-
-              <button style={styles.boardButton}>View on board</button>
+            <div style={styles.chartSubtitle}>
+              Total 24 cards
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
+          <select style={styles.teamSelect}>
+            <option>Cards assigned</option>
+            <option>Cards completed</option>
+            <option>Due dates</option>
+          </select>
+        </div>
+
+        {sampleData.team.map((member) => (
+          <div
+            key={member.name}
+            style={styles.teamWorkloadRow}
+          >
+            <div style={styles.teamMemberName}>
+
+              <span
+                style={{
+                  ...styles.memberAvatar,
+                  background:
+                    member.name === "Surbhi"
+                      ? "#0c66e4"
+                      : member.name === "Amit"
+                      ? "#0c66e4"
+                      : member.name === "Rahul"
+                      ? "#00875a"
+                      : member.name === "Priya"
+                      ? "#00a3bf"
+                      : "#dfe1e6",
+
+                  color:
+                    member.name === "Unassigned"
+                      ? "#5e6c84"
+                      : "#ffffff",
+                }}
+              >
+                {member.name === "Unassigned"
+                  ? "•"
+                  : member.name.charAt(0)}
+              </span>
+
+              <span>{member.name}</span>
+            </div>
+
+            <div style={styles.teamWorkloadBarBackground}>
+              <div
+                style={{
+                  ...styles.teamWorkloadBar,
+
+                  background:
+                    member.name === "Surbhi"
+                      ? "#2f80ed"
+                      : member.name === "Amit"
+                      ? "#8b5cf6"
+                      : member.name === "Rahul"
+                      ? "#f59e0b"
+                      : member.name === "Priya"
+                      ? "#22c55e"
+                      : "#c4c9d1",
+
+                  width: `${
+                    (member.count /
+                      Math.max(
+                        ...sampleData.team.map((m) => m.count)
+                      )) *
+                    100
+                  }%`,
+                }}
+              />
+            </div>
+
+            <strong style={styles.teamCount}>
+              {member.count}
+            </strong>
+          </div>
+        ))}
+
+        {/* LEGEND */}
+        <div style={styles.teamLegend}>
+
+          <span>
+            <i
+              style={{
+                ...styles.legendDot,
+                background: "#2f80ed",
+              }}
+            />
+            Planning
+          </span>
+
+          <span>
+            <i
+              style={{
+                ...styles.legendDot,
+                background: "#8b5cf6",
+              }}
+            />
+            In Progress
+          </span>
+
+          <span>
+            <i
+              style={{
+                ...styles.legendDot,
+                background: "#f59e0b",
+              }}
+            />
+            Review
+          </span>
+
+          <span>
+            <i
+              style={{
+                ...styles.legendDot,
+                background: "#22c55e",
+              }}
+            />
+            Completed
+          </span>
+
+        </div>
+
+        {/* KEY INSIGHT */}
+        <div style={styles.keyInsight}>
+
+          <span style={styles.keyInsightIcon}>
+            ♧
+          </span>
+
+          <div>
+            <strong>Key insight</strong>
+
+            <p style={styles.keyInsightText}>
+              Surbhi has the highest workload (8 cards),
+              which is 33% of the total board workload.
+            </p>
+          </div>
+
+        </div>
+
+      </div>
+
+      {/* RIGHT: SURBHI'S CARDS */}
+      <div style={styles.teamCardsPanel}>
+
+        <div style={styles.teamPanelHeader}>
+
+          <h2 style={styles.panelTitle}>
+            Surbhi's cards (8)
+          </h2>
+
+          <button
+  style={styles.viewAllButton}
+  onClick={async () => {
+    console.log("VIEW ON BOARD CLICKED");
+
+    try {
+      const t = window.TrelloPowerUp.iframe();
+
+      console.log("TRELLO IFRAME:", t);
+
+      const board = await t.board("members");
+
+      console.log("BOARD MEMBERS:", board);
+
+      await t.closeModal();
+    } catch (error) {
+      console.error("VIEW ON BOARD ERROR:", error);
+    }
+  }}
+>
+  View on board ↗
+</button>
+
+        </div>
+
+        {sampleData.teamCards.Surbhi.map((card) => (
+          <div
+            key={card.name}
+            style={styles.memberCard}
+          >
+
+            <div style={styles.memberCardName}>
+              {card.name}
+            </div>
+
+            <div style={styles.memberCardBottom}>
+
+              <span>
+                ▣ {card.date}
+              </span>
+
+              <span
+                style={{
+                  ...styles.stageBadge,
+
+                  background:
+                    card.stage === "Planning"
+                      ? "#eaf3ff"
+                      : card.stage === "In Progress"
+                      ? "#f3e8ff"
+                      : "#fff4d6",
+
+                  color:
+                    card.stage === "Planning"
+                      ? "#0c66e4"
+                      : card.stage === "In Progress"
+                      ? "#7c3aed"
+                      : "#b45309",
+                }}
+              >
+                {card.stage}
+              </span>
+
+            </div>
+
+          </div>
+        ))}
+
+        <div style={styles.moreCards}>
+          +3 more cards
+        </div>
+
+      </div>
+
+    </div>
+
+    {/* TIP */}
+    <div style={styles.tip}>
+
+      <span style={styles.tipIcon}>
+        ♧
+      </span>
+
+      <span>
+        <strong>Tip:</strong> Click on a member or card
+        to open it on your board.
+      </span>
+
+    </div>
+  </>
+)}
       {/* ================= NEEDS ATTENTION ================= */}
       {activeTab === "Needs Attention" && (
-        <div style={styles.panel}>
-          <h2 style={styles.panelTitle}>Needs Attention</h2>
+  <>
+    {/* SUMMARY CARDS */}
+    <div style={styles.attentionStatsGrid}>
 
-          <AttentionSection
-            title="Overdue"
-            type="overdue"
-            items={sampleData.attention.filter(
-              (item) => item.type === "Overdue"
-            )}
-            onSelect={setSelectedCard}
-          />
-
-          <AttentionSection
-            title="Due This Week"
-            type="due"
-            items={sampleData.attention.filter(
-              (item) => item.type === "Due this week"
-            )}
-            onSelect={setSelectedCard}
-          />
-
-          <AttentionSection
-            title="Unassigned"
-            type="unassigned"
-            items={sampleData.attention.filter(
-              (item) => item.type === "Unassigned"
-            )}
-            onSelect={setSelectedCard}
-          />
-
-          <AttentionSection
-            title="No Due Date"
-            type="noDate"
-            items={sampleData.attention.filter(
-              (item) => item.type === "No due date"
-            )}
-            onSelect={setSelectedCard}
-          />
+      <div style={{ ...styles.attentionStat, background: "#fff0f2" }}>
+        <div style={{ ...styles.attentionStatIcon, color: "#d92d20" }}>
+          !
         </div>
-      )}
+        <strong style={{ color: "#d92d20" }}>3</strong>
+        <span>Overdue cards</span>
+      </div>
+
+      <div style={{ ...styles.attentionStat, background: "#fff4ed" }}>
+        <div style={{ ...styles.attentionStatIcon, color: "#e8590c" }}>
+          ◷
+        </div>
+        <strong style={{ color: "#e8590c" }}>6</strong>
+        <span>Due this week</span>
+      </div>
+
+      <div style={{ ...styles.attentionStat, background: "#fff8e6" }}>
+        <div style={{ ...styles.attentionStatIcon, color: "#d97706" }}>
+          ≡
+        </div>
+        <strong style={{ color: "#d97706" }}>2</strong>
+        <span>Unassigned cards</span>
+      </div>
+
+      <div style={{ ...styles.attentionStat, background: "#edf5ff" }}>
+        <div style={{ ...styles.attentionStatIcon, color: "#0c66e4" }}>
+          ▣
+        </div>
+        <strong style={{ color: "#0c66e4" }}>1</strong>
+        <span>No due date</span>
+      </div>
+
+    </div>
+
+
+    {/* OVERDUE CARDS */}
+    <div style={styles.attentionPanel}>
+
+      <div style={styles.attentionSectionHeader}>
+  <div>
+    <span
+      style={{
+        ...styles.attentionDot,
+        background: "#d92d20",
+      }}
+    />
+    <strong>Overdue cards (3)</strong>
+  </div>
+
+  <button
+    style={styles.viewAllButton}
+    onClick={() => setShowOverdueModal(true)}
+  >
+    View all →
+  </button>
+</div>
+
+
+      <div
+        style={styles.attentionCardRow}
+        onClick={() =>
+          setSelectedCard({
+            name: "Finalize media plan",
+            type: "Overdue",
+            date: "Sep 12",
+          })
+        }
+      >
+        <span style={styles.attentionCardIcon}>▣</span>
+
+        <span style={styles.attentionCardName}>
+          Finalize media plan
+        </span>
+
+        <span style={styles.attentionDateDanger}>
+          ◷ Sep 12
+        </span>
+
+        <span style={styles.dangerBadge}>
+          Overdue
+        </span>
+
+        <span
+          style={{
+            ...styles.attentionAvatar,
+            background: "#64748b",
+          }}
+        >
+          S
+        </span>
+
+        <span style={styles.attentionStage}>
+          Review
+        </span>
+      </div>
+
+
+      <div
+        style={styles.attentionCardRow}
+        onClick={() =>
+          setSelectedCard({
+            name: "Update brand guidelines",
+            type: "Overdue",
+            date: "Sep 14",
+          })
+        }
+      >
+        <span style={styles.attentionCardIcon}>▣</span>
+
+        <span style={styles.attentionCardName}>
+          Update brand guidelines
+        </span>
+
+        <span style={styles.attentionDateDanger}>
+          ◷ Sep 14
+        </span>
+
+        <span style={styles.dangerBadge}>
+          Overdue
+        </span>
+
+        <span
+          style={{
+            ...styles.attentionAvatar,
+            background: "#64748b",
+          }}
+        >
+          R
+        </span>
+
+        <span style={styles.attentionStage}>
+          In Progress
+        </span>
+      </div>
+
+
+      <div
+        style={styles.attentionCardRow}
+        onClick={() =>
+          setSelectedCard({
+            name: "Prepare launch assets",
+            type: "Overdue",
+            date: "Sep 15",
+          })
+        }
+      >
+        <span style={styles.attentionCardIcon}>▣</span>
+
+        <span style={styles.attentionCardName}>
+          Prepare launch assets
+        </span>
+
+        <span style={styles.attentionDateDanger}>
+          ◷ Sep 15
+        </span>
+
+        <span style={styles.dangerBadge}>
+          Overdue
+        </span>
+
+        <span
+          style={{
+            ...styles.attentionAvatar,
+            background: "#0c66e4",
+          }}
+        >
+          A
+        </span>
+
+        <span style={styles.attentionStage}>
+          Planning
+        </span>
+      </div>
+
+
+      {/* DUE THIS WEEK */}
+      <div
+        style={{
+          ...styles.attentionSectionHeader,
+          marginTop: "14px",
+        }}
+      >
+        <div>
+          <span
+            style={{
+              ...styles.attentionDot,
+              background: "#e8590c",
+            }}
+          />
+          <strong>Due this week (6)</strong>
+        </div>
+
+       <button
+  style={styles.viewAllButton}
+  onClick={() => setShowDueWeekModal(true)}
+>
+  View all →
+</button>
+      </div>
+
+
+      <div style={styles.attentionCardRow}>
+        <span style={styles.attentionCardIcon}>▣</span>
+
+        <span style={styles.attentionCardName}>
+          Review ad creatives
+        </span>
+
+        <span style={styles.attentionDate}>
+          ◷ Sep 16
+        </span>
+
+        <span style={styles.weekBadge}>
+          Due this week
+        </span>
+
+        <span
+          style={{
+            ...styles.attentionAvatar,
+            background: "#64748b",
+          }}
+        >
+          P
+        </span>
+
+        <span style={styles.attentionStage}>
+          Review
+        </span>
+      </div>
+
+
+      <div style={styles.attentionCardRow}>
+        <span style={styles.attentionCardIcon}>▣</span>
+
+        <span style={styles.attentionCardName}>
+          Coordinate with agency
+        </span>
+
+        <span style={styles.attentionDate}>
+          ◷ Sep 17
+        </span>
+
+        <span style={styles.weekBadge}>
+          Due this week
+        </span>
+
+        <span
+          style={{
+            ...styles.attentionAvatar,
+            background: "#64748b",
+          }}
+        >
+          S
+        </span>
+
+        <span style={styles.attentionStage}>
+          In Progress
+        </span>
+      </div>
+
+
+      <div style={styles.attentionCardRow}>
+        <span style={styles.attentionCardIcon}>▣</span>
+
+        <span style={styles.attentionCardName}>
+          Test tracking setup
+        </span>
+
+        <span style={styles.attentionDate}>
+          ◷ Sep 18
+        </span>
+
+        <span style={styles.weekBadge}>
+          Due this week
+        </span>
+
+        <span
+          style={{
+            ...styles.attentionAvatar,
+            background: "#64748b",
+          }}
+        >
+          R
+        </span>
+
+        <span style={styles.attentionStage}>
+          In Progress
+        </span>
+      </div>
+
+
+      <div style={styles.moreCards}>
+        +3 more cards
+      </div>
+
+    </div>
+
+
+    {/* TIP */}
+    <div style={styles.tip}>
+      <span style={styles.tipIcon}>♧</span>
+
+      <span>
+        <strong>Tip:</strong> Click on any card to open it, or use
+        "View all" to see all cards on your board.
+      </span>
+    </div>
+  </>
+)}
 
       {/* CARD POPUP */}
       {selectedCard && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
             <button
-              style={styles.closeModalButton}
-              onClick={() => setSelectedCard(null)}
-            >
-              ×
-            </button>
+  style={{
+    position: "absolute",
+    top: "10px",
+    right: "12px",
+    border: "none",
+    background: "transparent",
+    color: "#5e6c84",
+    fontSize: "22px",
+    fontWeight: 400,
+    cursor: "pointer",
+    lineHeight: "1",
+  }}
+  onClick={() => setSelectedCard(null)}
+>
+  ×
+</button>
 
             <h2 style={styles.modalTitle}>{selectedCard.name}</h2>
 
@@ -482,9 +1202,163 @@ export default function Dashboard({ t }) {
           </div>
         </div>
       )}
+      {showOverdueModal && (
+  <div style={styles.overlay}>
+    <div style={styles.overdueModal}>
+
+      <button
+        style={styles.overdueCloseButton}
+        onClick={() => setShowOverdueModal(false)}
+      >
+        ×
+      </button>
+
+      <h2 style={styles.overdueModalTitle}>
+        🔴 Overdue Cards (3)
+      </h2>
+
+      <p style={styles.overdueModalSubtitle}>
+        These cards are past their due date and need attention
+      </p>
+
+      <div style={styles.overdueModalCard}>
+        <div>
+          <strong>Finalize media plan</strong>
+          <p>Finalize the media buying plan and get final approvals from stakeholders.</p>
+        </div>
+
+        <div style={styles.overdueModalMeta}>
+          <span>Sep 12</span>
+          <span>● Surbhi</span>
+          <span>Review</span>
+        </div>
+      </div>
+
+      <div style={styles.overdueModalCard}>
+        <div>
+          <strong>Update brand guidelines</strong>
+          <p>Review and update feedback and update the brand guidelines document.</p>
+        </div>
+
+        <div style={styles.overdueModalMeta}>
+          <span>Sep 14</span>
+          <span>● Rahul</span>
+          <span>In Progress</span>
+        </div>
+      </div>
+
+      <div style={styles.overdueModalCard}>
+        <div>
+          <strong>Prepare launch assets</strong>
+          <p>Finalize creative assets for the product launch campaign.</p>
+        </div>
+
+        <div style={styles.overdueModalMeta}>
+          <span>Sep 15</span>
+          <span>● Amit</span>
+          <span>Planning</span>
+        </div>
+      </div>
+
+      <div style={styles.overdueModalTip}>
+        💡 Tip: Click on a card to open it, or use the button to jump directly.
+      </div>
+
+      <div style={styles.overdueModalFooter}>
+        <button
+          style={styles.modalCloseButton}
+          onClick={() => setShowOverdueModal(false)}
+        >
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+{showDueWeekModal && (
+  <div style={styles.overlay}>
+    <div style={styles.overdueModal}>
+
+      <button
+        style={styles.overdueCloseButton}
+        onClick={() => setShowDueWeekModal(false)}
+      >
+        ×
+      </button>
+
+      <h2 style={styles.overdueModalTitle}>
+        🟠 Due This Week (6)
+      </h2>
+
+      <p style={styles.overdueModalSubtitle}>
+        These cards are due within this week.
+      </p>
+
+      <div style={styles.overdueModalCard}>
+        <div>
+          <strong>Review ad creatives</strong>
+          <p>Review and approve the latest advertising creatives.</p>
+        </div>
+
+        <div style={styles.overdueModalMeta}>
+          <span>Sep 16</span>
+          <span>● Priya</span>
+          <span>Review</span>
+        </div>
+      </div>
+
+      <div style={styles.overdueModalCard}>
+        <div>
+          <strong>Coordinate with agency</strong>
+          <p>Coordinate with the agency on the upcoming campaign.</p>
+        </div>
+
+        <div style={styles.overdueModalMeta}>
+          <span>Sep 17</span>
+          <span>● Surbhi</span>
+          <span>In Progress</span>
+        </div>
+      </div>
+
+      <div style={styles.overdueModalCard}>
+        <div>
+          <strong>Test tracking setup</strong>
+          <p>Verify that campaign tracking is working correctly.</p>
+        </div>
+
+        <div style={styles.overdueModalMeta}>
+          <span>Sep 18</span>
+          <span>● Rahul</span>
+          <span>In Progress</span>
+        </div>
+      </div>
+
+      <div style={styles.moreCards}>
+        +3 more cards
+      </div>
+
+      <div style={styles.overdueModalTip}>
+        💡 Tip: Click on a card to open it, or use the button to jump directly.
+      </div>
+
+      <div style={styles.overdueModalFooter}>
+        <button
+          style={styles.modalCloseButton}
+          onClick={() => setShowDueWeekModal(false)}
+        >
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+      
     </div>
   );
 }
+
 
 /* ================= STAT CARD ================= */
 
@@ -1135,4 +2009,488 @@ const styles = {
     borderBottom: "1px solid #ebecf0",
     fontSize: "10px",
   },
+
+    stageTopGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "7px",
+    marginBottom: "7px",
+  },
+
+  stageChartPanel: {
+    border: "1px solid #dfe1e6",
+    borderRadius: "5px",
+    padding: "9px",
+    background: "#ffffff",
+    height: "185px",
+    boxSizing: "border-box",
+  },
+
+  stageBreakdownPanel: {
+    border: "1px solid #dfe1e6",
+    borderRadius: "5px",
+    padding: "9px",
+    background: "#ffffff",
+    height: "185px",
+    boxSizing: "border-box",
+  },
+
+  chartSubtitle: {
+    fontSize: "8px",
+    color: "#5e6c84",
+    marginTop: "3px",
+  },
+
+  chartArea: {
+    height: "130px",
+    display: "flex",
+    alignItems: "flex-end",
+    justifyContent: "space-around",
+    borderBottom: "1px solid #dfe1e6",
+    marginTop: "4px",
+  },
+
+  chartColumn: {
+    height: "125px",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "flex-end",
+    gap: "2px",
+  },
+
+  chartValue: {
+    fontSize: "9px",
+    color: "#172b4d",
+  },
+
+  chartBar: {
+    width: "32px",
+    minHeight: "12px",
+    borderRadius: "4px 4px 0 0",
+  },
+
+  chartLabel: {
+    fontSize: "7px",
+    color: "#5e6c84",
+    marginBottom: "3px",
+  },
+
+  breakdownRow: {
+    marginTop: "9px",
+  },
+
+  breakdownTop: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: "8px",
+    marginBottom: "3px",
+  },
+
+  percentage: {
+    color: "#5e6c84",
+    marginLeft: "10px",
+  },
+
+  stageCardsGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "7px",
+    marginBottom: "7px",
+  },
+
+  stageCardPanel: {
+    border: "1px solid #dfe1e6",
+    borderRadius: "5px",
+    background: "#ffffff",
+    padding: "8px",
+  },
+
+  stageCardHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "5px",
+    fontSize: "8px",
+  },
+
+  stageDot: {
+    display: "inline-block",
+    width: "8px",
+    height: "8px",
+    borderRadius: "50%",
+    marginRight: "5px",
+  },
+
+  cardListRow: {
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "space-between",
+    minHeight: "27px",
+    borderTop: "1px solid #ebecf0",
+    fontSize: "8px",
+    gap: "5px",
+  },
+
+  cardMeta: {
+    display: "flex",
+    alignItems: "center",
+    gap: "5px",
+    color: "#5e6c84",
+    whiteSpace: "nowrap",
+  },
+
+  cardMember: {
+    width: "17px",
+    height: "17px",
+    borderRadius: "50%",
+    color: "#ffffff",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    fontSize: "7px",
+    fontWeight: 700,
+  },
+
+  arrow: {
+    color: "#0c66e4",
+    fontSize: "14px",
+  },
+
+  moreCards: {
+    color: "#0c66e4",
+    fontSize: "8px",
+    paddingTop: "5px",
+  },
+    teamMainGrid: {
+    display: "grid",
+    gridTemplateColumns: "1fr 1fr",
+    gap: "7px",
+    marginBottom: "7px",
+  },
+
+  teamWorkloadPanel: {
+    border: "1px solid #dfe1e6",
+    borderRadius: "5px",
+    padding: "9px",
+    background: "#ffffff",
+    boxSizing: "border-box",
+  },
+
+  teamCardsPanel: {
+    border: "1px solid #dfe1e6",
+    borderRadius: "5px",
+    padding: "9px",
+    background: "#ffffff",
+    boxSizing: "border-box",
+  },
+
+  teamPanelHeader: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: "8px",
+  },
+
+  teamSelect: {
+    border: "1px solid #dfe1e6",
+    borderRadius: "4px",
+    padding: "5px 7px",
+    fontSize: "8px",
+    color: "#172b4d",
+    background: "#ffffff",
+  },
+
+  teamWorkloadRow: {
+    display: "grid",
+    gridTemplateColumns: "90px 1fr 20px",
+    alignItems: "center",
+    gap: "7px",
+    marginBottom: "8px",
+  },
+
+  teamMemberName: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    fontSize: "8px",
+  },
+
+  teamWorkloadBarBackground: {
+    height: "12px",
+    background: "#ebecf0",
+    borderRadius: "3px",
+    overflow: "hidden",
+  },
+
+  teamWorkloadBar: {
+    height: "100%",
+    borderRadius: "3px",
+  },
+
+  teamCount: {
+    fontSize: "8px",
+    textAlign: "right",
+  },
+
+  teamLegend: {
+    display: "flex",
+    gap: "12px",
+    flexWrap: "wrap",
+    marginTop: "17px",
+    fontSize: "7px",
+    color: "#5e6c84",
+  },
+
+  legendDot: {
+    display: "inline-block",
+    width: "7px",
+    height: "7px",
+    borderRadius: "50%",
+    marginRight: "4px",
+  },
+
+  keyInsight: {
+    display: "flex",
+    gap: "8px",
+    background: "#eaf3ff",
+    borderRadius: "5px",
+    padding: "9px",
+    marginTop: "17px",
+    fontSize: "8px",
+  },
+
+  keyInsightIcon: {
+    color: "#0c66e4",
+    fontSize: "18px",
+  },
+
+  keyInsightText: {
+    margin: "4px 0 0",
+    color: "#5e6c84",
+    lineHeight: "12px",
+  },
+
+  memberCard: {
+    border: "1px solid #ebecf0",
+    borderRadius: "5px",
+    padding: "8px",
+    marginBottom: "5px",
+    background: "#ffffff",
+  },
+
+  memberCardName: {
+    fontSize: "8px",
+    fontWeight: 600,
+    marginBottom: "6px",
+  },
+
+  memberCardBottom: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    fontSize: "7px",
+    color: "#5e6c84",
+  },
+
+  stageBadge: {
+    padding: "4px 6px",
+    borderRadius: "4px",
+    fontSize: "7px",
+  },
+  attentionStatsGrid: {
+  display: "grid",
+  gridTemplateColumns: "repeat(4, 1fr)",
+  gap: "7px",
+  marginBottom: "8px",
+},
+
+attentionStat: {
+  borderRadius: "5px",
+  padding: "7px",
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px",
+  boxSizing: "border-box",
+  minHeight: "55px",
+},
+
+attentionStatIcon: {
+  fontSize: "12px",
+  fontWeight: 700,
+},
+
+attentionPanel: {
+  border: "1px solid #dfe1e6",
+  borderRadius: "5px",
+  padding: "9px",
+  background: "#ffffff",
+},
+
+attentionSectionHeader: {
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  marginBottom: "4px",
+  fontSize: "8px",
+},
+
+attentionDot: {
+  display: "inline-block",
+  width: "6px",
+  height: "6px",
+  borderRadius: "50%",
+  marginRight: "4px",
+},
+
+attentionCardRow: {
+  display: "grid",
+  gridTemplateColumns: "16px 1fr 55px 60px 20px 65px",
+  alignItems: "center",
+  gap: "5px",
+  minHeight: "30px",
+  borderBottom: "1px solid #ebecf0",
+  cursor: "pointer",
+  fontSize: "7px",
+},
+
+attentionCardIcon: {
+  color: "#5e6c84",
+  fontSize: "9px",
+},
+
+attentionCardName: {
+  fontWeight: 600,
+  color: "#172b4d",
+  whiteSpace: "nowrap",
+  overflow: "hidden",
+  textOverflow: "ellipsis",
+},
+
+attentionDate: {
+  color: "#e8590c",
+  background: "#fff4ed",
+  padding: "3px",
+  borderRadius: "3px",
+  textAlign: "center",
+},
+
+attentionDateDanger: {
+  color: "#d92d20",
+  background: "#fff0f2",
+  padding: "3px",
+  borderRadius: "3px",
+  textAlign: "center",
+},
+
+weekBadge: {
+  color: "#0c66e4",
+  background: "#eaf3ff",
+  padding: "4px",
+  borderRadius: "3px",
+  textAlign: "center",
+  fontSize: "6px",
+},
+
+attentionAvatar: {
+  width: "18px",
+  height: "18px",
+  borderRadius: "50%",
+  display: "flex",
+  alignItems: "center",
+  justifyContent: "center",
+  color: "#ffffff",
+  fontSize: "7px",
+  fontWeight: 600,
+},
+
+attentionStage: {
+  color: "#5e6c84",
+  fontSize: "7px",
+},
+
+dangerBadge: {
+  color: "#d92d20",
+  background: "#fff0f2",
+  padding: "4px",
+  borderRadius: "3px",
+  textAlign: "center",
+  fontSize: "6px",
+},
+overdueModal: {
+  position: "relative",
+  width: "360px",
+  maxHeight: "420px",
+  overflowY: "auto",
+  background: "#ffffff",
+  borderRadius: "8px",
+  padding: "14px",
+  boxShadow: "0 8px 24px rgba(9, 30, 66, 0.25)",
+  boxSizing: "border-box",
+},
+
+overdueCloseButton: {
+  position: "absolute",
+  top: "8px",
+  right: "10px",
+  border: "none",
+  background: "transparent",
+  color: "#5e6c84",
+  fontSize: "20px",
+  cursor: "pointer",
+},
+
+overdueModalTitle: {
+  fontSize: "13px",
+  color: "#172b4d",
+  margin: "0 0 3px",
+},
+
+overdueModalSubtitle: {
+  fontSize: "7px",
+  color: "#5e6c84",
+  margin: "0 0 10px",
+},
+
+overdueModalCard: {
+  borderBottom: "1px solid #ebecf0",
+  padding: "9px 0",
+},
+
+
+
+
+
+overdueModalMeta: {
+  display: "flex",
+  gap: "8px",
+  fontSize: "7px",
+  color: "#5e6c84",
+},
+
+overdueModalTip: {
+  background: "#edf5ff",
+  borderRadius: "4px",
+  padding: "7px",
+  marginTop: "10px",
+  fontSize: "7px",
+  color: "#172b4d",
+},
+
+overdueModalFooter: {
+  display: "flex",
+  justifyContent: "flex-end",
+  marginTop: "8px",
+},
+
+modalCloseButton: {
+  border: "none",
+  background: "#dfe1e6",
+  color: "#172b4d",
+  borderRadius: "4px",
+  padding: "5px 12px",
+  fontSize: "7px",
+  cursor: "pointer",
+},
 };

@@ -50,21 +50,23 @@ TrelloPowerUp.initialize({
             url: "./auth.html",
             height: 320,
 
-            callback: function (t) {
-              return t.modal({
-                title: "Insight",
-                url: "./dashboard.html",
-                
-              });
-            },
+           callback: function (t) {
+  return t.modal({
+    title: "Insight",
+    url: t.signUrl("./dashboard.html"),
+    height: 520,
+    fullscreen: false,
+  });
+},
           });
         }
 
-        return t.modal({
-          title: "Insight",
-          url: "./dashboard.html",
-          
-        });
+       return t.modal({
+  title: "Insight",
+  url: t.signUrl("./dashboard.html"),
+  height: 520,
+  fullscreen: false,
+});
       },
     },
   ];
