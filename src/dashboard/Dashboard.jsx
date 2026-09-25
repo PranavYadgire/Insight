@@ -253,8 +253,10 @@ useEffect(() => {
                             ? "#f59e0b"
                             : "#22c55e",
                         width: `${
-                          (stage.count / sampleData.overview.total) * 100
-                        }%`,
+  (stage.count /
+    (insightData?.overview?.total ?? sampleData.overview.total)) *
+  100
+}%`,
                       }}
                     />
                   </div>
@@ -352,34 +354,38 @@ useEffect(() => {
             </div>
 
             <div style={styles.attentionGrid}>
-              <AttentionCard
-                type="overdue"
-                icon="!"
-                title="3 overdue cards"
-                description="These cards are past their due date"
-              />
+  <AttentionCard
+    type="overdue"
+    icon="!"
+    title={`${insightData?.overview?.overdue ?? 0} overdue cards`}
+    description="These cards are past their due date"
+  />
 
-              <AttentionCard
-                type="due"
-                icon="◷"
-                title="6 cards due this week"
-                description="Due in the next 7 days"
-              />
+  <AttentionCard
+    type="due"
+    icon="◷"
+    title={`${insightData?.overview?.dueThisWeek ?? 0} cards due this week`}
+    description="Due in the next 7 days"
+  />
 
-              <AttentionCard
-                type="unassigned"
-                icon="●"
-                title="2 unassigned cards"
-                description="No member assigned"
-              />
+  <AttentionCard
+    type="unassigned"
+    icon="●"
+    title={`${
+      insightData?.counts?.unassigned ?? 0
+    } unassigned cards`}
+    description="No member assigned"
+  />
 
-              <AttentionCard
-                type="noDate"
-                icon="▣"
-                title="1 card without due date"
-                description="Consider adding a due date"
-              />
-            </div>
+  <AttentionCard
+    type="noDate"
+    icon="▣"
+    title={`${
+      insightData?.counts?.noDueDate ?? 0
+    } cards without due date`}
+    description="Consider adding a due date"
+  />
+</div>
           </div>
 
           {/* TIP */}

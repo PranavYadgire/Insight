@@ -408,9 +408,8 @@ export function buildInsightData({
           ),
 
         isCompleted:
-          isCompletedList(
-            list?.name
-          ),
+  card.dueComplete === true ||
+  isCompletedList(list?.name),
 
         isOverdue:
           isOverdue(card),
