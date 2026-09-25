@@ -98,6 +98,7 @@ const sampleData = {
 export default function Dashboard({ t }) {
   const [activeTab, setActiveTab] = useState("Overview");
 const [selectedCard, setSelectedCard] = useState(null);
+const [selectedStage, setSelectedStage] = useState(null);
 const [attentionSort, setAttentionSort] = useState("Due date — Oldest first");
 const [showOverdueModal, setShowOverdueModal] = useState(false);
 const [showDueWeekModal, setShowDueWeekModal] = useState(false);
@@ -226,11 +227,11 @@ useEffect(() => {
                 <h2 style={styles.panelTitle}>Work by Stage</h2>
 
                 <button
-                  style={styles.viewAllButton}
-                  onClick={() => setActiveTab("By Stage")}
-                >
-                  View all →
-                </button>
+  style={styles.viewAllButton}
+  onClick={() => setActiveTab("By Stage")}
+>
+  View all →
+</button>
               </div>
 
 {(insightData?.stages ?? sampleData.stages).map((stage) => (
@@ -478,9 +479,11 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
                       : stage.name === "Review"
                       ? "#f59e0b"
                       : "#22c55e",
-                  width: `${
-                    (stage.count / sampleData.overview.total) * 100
-                  }%`,
+                 width: `${
+  (stage.count /
+    (insightData?.overview?.total ?? sampleData.overview.total)) *
+  100
+}%`,
                 }}
               />
             </div>
@@ -527,9 +530,12 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
             </strong>
           </div>
 
-          <button style={styles.viewAllButton}>
-            View all →
-          </button>
+          <button
+  style={styles.viewAllButton}
+  onClick={() => setSelectedStage(stage.name)}
+>
+  View all →
+</button>
         </div>
 
         {visibleCards.length === 0 ? (
@@ -1104,6 +1110,87 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
       );
     })()}
   </>
+)}
+{/* STAGE CARDS POPUP */}
+{selectedStage && (
+  <div style={styles.overlay}>
+    <div style={styles.overdueModal}>
+
+      <button
+        style={styles.overdueCloseButton}
+        onClick={() => setSelectedStage(null)}
+      >
+        ×
+      </button>
+
+      <h2 style={styles.overdueModalTitle}>
+        {selectedStage} ({insightData?.cards?.filter(
+          (card) => card.listName === selectedStage
+        ).length || 0})
+      </h2>
+
+      <p style={styles.overdueModalSubtitle}>
+        All cards in this stage.
+      </p>
+
+      {(insightData?.cards || [])
+        .filter((card) => card.listName === selectedStage)
+        .map((card) => (
+          <div
+            key={card.id}
+            style={styles.overdueModalCard}
+            onClick={() => {
+              setSelectedStage(null);
+              setSelectedCard({
+                name: card.name,
+                type: card.listName,
+                date: card.displayDate,
+              });
+            }}
+          >
+            <div>
+              <strong>{card.name}</strong>
+
+              <p>
+                {card.description || "No description available."}
+              </p>
+            </div>
+
+            <div style={styles.overdueModalMeta}>
+              <span>{card.displayDate}</span>
+
+              <span>
+                ●{" "}
+                {card.memberNames?.length
+                  ? card.memberNames.join(", ")
+                  : "Unassigned"}
+              </span>
+
+              <span>{card.listName}</span>
+            </div>
+          </div>
+        ))}
+
+      {(!insightData?.cards ||
+        insightData.cards.filter(
+          (card) => card.listName === selectedStage
+        ).length === 0) && (
+        <div style={styles.moreCards}>
+          No cards in this stage.
+        </div>
+      )}
+
+      <div style={styles.overdueModalFooter}>
+        <button
+          style={styles.modalCloseButton}
+          onClick={() => setSelectedStage(null)}
+        >
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
 )}
       {/* CARD POPUP */}
       {selectedCard && (
