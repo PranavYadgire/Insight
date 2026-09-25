@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { getInsightData } from "../lib/trelloApi.js";
 
 const sampleData = {
   overview: {
@@ -96,19 +97,54 @@ const sampleData = {
 
 export default function Dashboard({ t }) {
   const [activeTab, setActiveTab] = useState("Overview");
-const [sortBy, setSortBy] = useState("Due date — Oldest first");
 const [selectedCard, setSelectedCard] = useState(null);
+const [attentionSort, setAttentionSort] = useState("Due date — Oldest first");
 const [showOverdueModal, setShowOverdueModal] = useState(false);
 const [showDueWeekModal, setShowDueWeekModal] = useState(false);
-const [refreshing, setRefreshing] = useState(false);
+const [insightData, setInsightData] = useState(null);
+const [dataLoading, setDataLoading] = useState(true);
+const [dataError, setDataError] = useState(null);
 
-  const handleRefresh = () => {
-    setRefreshing(true);
+useEffect(() => {
+  let cancelled = false;
 
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 800);
+  async function loadInsightData() {
+    try {
+      setDataLoading(true);
+      setDataError(null);
+
+      const t = window.TrelloPowerUp.iframe();
+
+      console.log("Loading real Trello data...");
+
+      const data = await getInsightData(t);
+
+      console.log("REAL INSIGHT DATA:", data);
+
+      if (!cancelled) {
+        setInsightData(data);
+      }
+    } catch (error) {
+      console.error("Insight data load error:", error);
+
+      if (!cancelled) {
+        setDataError(error.message || "Failed to load Trello data");
+      }
+    } finally {
+      if (!cancelled) {
+        setDataLoading(false);
+      }
+    }
+  }
+
+  loadInsightData();
+
+  return () => {
+    cancelled = true;
   };
+}, []);
+
+  
 
   return (
     <div style={styles.container}>
@@ -146,23 +182,7 @@ const [refreshing, setRefreshing] = useState(false);
       </div>
 
       {/* TOP CONTROLS */}
-      <div style={styles.controls}>
-        <button style={styles.refreshButton} onClick={handleRefresh}>
-          {refreshing ? "Refreshing..." : "↻ Refresh"}
-        </button>
-
-        <select
-          style={styles.sortSelect}
-          value={sortBy}
-          onChange={(e) => setSortBy(e.target.value)}
-        >
-          <option>Due date — Oldest first</option>
-          <option>Due date — Newest first</option>
-          <option>Priority — Highest first</option>
-          <option>Checklist progress — Lowest first</option>
-          <option>Card name — A–Z</option>
-        </select>
-      </div>
+     
 
       {/* ================= OVERVIEW ================= */}
       {activeTab === "Overview" && (
@@ -172,28 +192,28 @@ const [refreshing, setRefreshing] = useState(false);
             <StatCard
               type="total"
               icon="▣"
-              value={sampleData.overview.total}
+              value={(insightData?.overview?.total ?? sampleData.overview.total)}
               title="Total Cards"
             />
 
             <StatCard
               type="completed"
               icon="✓"
-              value={sampleData.overview.completed}
+              value={(insightData?.overview?.completed ?? sampleData.overview.completed)}
               title="Completed"
             />
 
             <StatCard
               type="due"
               icon="◷"
-              value={sampleData.overview.dueThisWeek}
+              value={(insightData?.overview?.dueThisWeek ?? sampleData.overview.dueThisWeek)}
               title="Due this week"
             />
 
             <StatCard
               type="overdue"
               icon="!"
-              value={sampleData.overview.overdue}
+              value={(insightData?.overview?.overdue ?? sampleData.overview.overdue)}
               title="Overdue"
             />
           </div>
@@ -213,8 +233,8 @@ const [refreshing, setRefreshing] = useState(false);
                 </button>
               </div>
 
-              {sampleData.stages.map((stage) => (
-                <div key={stage.name} style={styles.stageRow}>
+{(insightData?.stages ?? sampleData.stages).map((stage) => (
+                  <div key={stage.name} style={styles.stageRow}>
                   <div style={styles.rowHeader}>
                     <span>{stage.name}</span>
                     <strong>{stage.count}</strong>
@@ -255,8 +275,8 @@ const [refreshing, setRefreshing] = useState(false);
                 </button>
               </div>
 
-              {sampleData.team.map((member) => (
-                <div key={member.name} style={styles.stageRow}>
+{(insightData?.team ?? sampleData.team).map((member) => (
+                  <div key={member.name} style={styles.stageRow}>
                   <div style={styles.rowHeader}>
                     <div style={styles.memberInfo}>
                       <span
@@ -384,11 +404,10 @@ const [refreshing, setRefreshing] = useState(false);
         <h2 style={styles.panelTitle}>Cards by Stage</h2>
 
         <div style={styles.chartSubtitle}>
-          Total 24 cards
-        </div>
+Total {insightData?.overview?.total ?? sampleData.overview.total} cards        </div>
 
         <div style={styles.chartArea}>
-          {sampleData.stages.map((stage) => (
+          {(insightData?.stages ?? sampleData.stages).map((stage) => (
             <div key={stage.name} style={styles.chartColumn}>
 
               <strong style={styles.chartValue}>
@@ -423,8 +442,8 @@ const [refreshing, setRefreshing] = useState(false);
       <div style={styles.stageBreakdownPanel}>
         <h2 style={styles.panelTitle}>Stage breakdown</h2>
 
-        {sampleData.stages.map((stage) => (
-          <div
+{(insightData?.stages ?? sampleData.stages).map((stage) => (
+            <div
             key={stage.name}
             style={styles.breakdownRow}
           >
@@ -435,8 +454,7 @@ const [refreshing, setRefreshing] = useState(false);
                 <strong>{stage.count} cards</strong>
                 <span style={styles.percentage}>
                   {Math.round(
-                    (stage.count / sampleData.overview.total) * 100
-                  )}
+(stage.count / (insightData?.overview?.total ?? sampleData.overview.total)) * 100                  )}
                   %
                 </span>
               </span>
@@ -466,21 +484,40 @@ const [refreshing, setRefreshing] = useState(false);
     </div>
 
     {/* STAGE CARD LISTS */}
-    <div style={styles.stageCardsGrid}>
+    {/* STAGE CARD LISTS */}
+<div style={styles.stageCardsGrid}>
 
-      {/* PLANNING */}
-      <div style={styles.stageCardPanel}>
+  {(insightData?.stages ?? sampleData.stages).map((stage) => {
+    const stageCards = (insightData?.cards ?? []).filter(
+      (card) => card.listName === stage.name
+    );
+
+    const visibleCards = stageCards.slice(0, 5);
+    const remainingCards = stageCards.length - visibleCards.length;
+
+    return (
+      <div
+        key={stage.name}
+        style={styles.stageCardPanel}
+      >
         <div style={styles.stageCardHeader}>
           <div>
             <span
               style={{
                 ...styles.stageDot,
-                background: "#2f80ed",
+                background:
+                  stage.name === "Planning"
+                    ? "#2f80ed"
+                    : stage.name === "In Progress"
+                    ? "#8b5cf6"
+                    : stage.name === "Review"
+                    ? "#f59e0b"
+                    : "#22c55e",
               }}
             />
 
             <strong>
-              Cards in Planning (5)
+              Cards in {stage.name} ({stage.count})
             </strong>
           </div>
 
@@ -489,88 +526,55 @@ const [refreshing, setRefreshing] = useState(false);
           </button>
         </div>
 
-        {sampleData.stageCards.Planning.map((card) => (
-          <div
-            key={card.name}
-            style={styles.cardListRow}
-          >
-            <span>{card.name}</span>
+        {visibleCards.length === 0 ? (
+          <div style={styles.moreCards}>
+            No cards in this stage
+          </div>
+        ) : (
+          visibleCards.map((card) => (
+            <div
+              key={card.id}
+              style={styles.cardListRow}
+              onClick={() =>
+                setSelectedCard({
+                  name: card.name,
+                  type: stage.name,
+                  date: card.displayDate,
+                })
+              }
+            >
+              <span>{card.name}</span>
 
-            <div style={styles.cardMeta}>
-              <span>▣ {card.date}</span>
+              <div style={styles.cardMeta}>
+                <span>▣ {card.displayDate}</span>
 
-              <span
-                style={{
-                  ...styles.cardMember,
-                  background: "#64748b",
-                }}
-              >
-                {card.member}
-              </span>
+                <span
+                  style={{
+                    ...styles.cardMember,
+                    background: "#64748b",
+                  }}
+                >
+                  {card.memberNames?.length
+                    ? card.memberNames[0].charAt(0)
+                    : "•"}
+                </span>
 
-              <span style={styles.arrow}>›</span>
+                <span style={styles.arrow}>›</span>
+              </div>
             </div>
+          ))
+        )}
+
+        {remainingCards > 0 && (
+          <div style={styles.moreCards}>
+            +{remainingCards} more cards
           </div>
-        ))}
+        )}
       </div>
+    );
+  })}
 
-      {/* IN PROGRESS */}
-      <div style={styles.stageCardPanel}>
-        <div style={styles.stageCardHeader}>
-          <div>
-            <span
-              style={{
-                ...styles.stageDot,
-                background: "#8b5cf6",
-              }}
-            />
-
-            <strong>
-              Cards in In Progress (8)
-            </strong>
-          </div>
-
-          <button style={styles.viewAllButton}>
-            View all →
-          </button>
-        </div>
-
-        {sampleData.stageCards["In Progress"].map((card) => (
-          <div
-            key={card.name}
-            style={styles.cardListRow}
-          >
-            <span>{card.name}</span>
-
-            <div style={styles.cardMeta}>
-              <span>▣ {card.date}</span>
-
-              <span
-                style={{
-                  ...styles.cardMember,
-                  background:
-                    card.member === "S"
-                      ? "#0c66e4"
-                      : card.member === "A"
-                      ? "#0c66e4"
-                      : card.member === "R"
-                      ? "#64748b"
-                      : "#8b5cf6",
-                }}
-              >
-                {card.member}
-              </span>
-
-              <span style={styles.arrow}>›</span>
-            </div>
-          </div>
-        ))}
-
-        <div style={styles.moreCards}>
-          +3 more cards
-        </div>
-      </div>
-    </div>
+</div>
 
     {/* TIP */}
     <div style={styles.tip}>
@@ -596,7 +600,7 @@ const [refreshing, setRefreshing] = useState(false);
             <h2 style={styles.panelTitle}>Team workload</h2>
 
             <div style={styles.chartSubtitle}>
-              Total 24 cards
+             Total {insightData?.overview?.total ?? sampleData.overview.total} cards
             </div>
           </div>
 
@@ -607,8 +611,7 @@ const [refreshing, setRefreshing] = useState(false);
           </select>
         </div>
 
-        {sampleData.team.map((member) => (
-          <div
+{(insightData?.team ?? sampleData.team).map((member) => (          <div
             key={member.name}
             style={styles.teamWorkloadRow}
           >
@@ -661,8 +664,8 @@ const [refreshing, setRefreshing] = useState(false);
                   width: `${
                     (member.count /
                       Math.max(
-                        ...sampleData.team.map((m) => m.count)
-                      )) *
+  ...(insightData?.team ?? sampleData.team).map((m) => m.count)
+)) *
                     100
                   }%`,
                 }}
@@ -740,87 +743,100 @@ const [refreshing, setRefreshing] = useState(false);
 
       </div>
 
-      {/* RIGHT: SURBHI'S CARDS */}
-      <div style={styles.teamCardsPanel}>
+      {/* RIGHT: TEAM MEMBER'S CARDS */}
+<div style={styles.teamCardsPanel}>
 
-        <div style={styles.teamPanelHeader}>
+  <div style={styles.teamPanelHeader}>
 
-          <h2 style={styles.panelTitle}>
-            Surbhi's cards (8)
-          </h2>
+    <h2 style={styles.panelTitle}>
+      {insightData?.team?.[0]?.name || "Team member"}'s cards (
+      {insightData?.team?.[0]?.count || 0}
+      )
+    </h2>
 
-          <button
-  style={styles.viewAllButton}
-  onClick={async () => {
-    console.log("VIEW ON BOARD CLICKED");
+    <button
+      style={styles.viewAllButton}
+      onClick={async () => {
+  console.log("VIEW ON BOARD CLICKED");
 
-    try {
-      const t = window.TrelloPowerUp.iframe();
+  try {
+    const trello = window.TrelloPowerUp.iframe();
 
-      console.log("TRELLO IFRAME:", t);
+    const board = await trello.board("id");
 
-      const board = await t.board("members");
+    console.log("CURRENT BOARD:", board);
 
-console.log("BOARD MEMBERS JSON:", JSON.stringify(board.members, null, 2));
-      await t.closeModal();
-    } catch (error) {
-      console.error("VIEW ON BOARD ERROR:", error);
-    }
-  }}
->
-  View on board ↗
-</button>
+    await trello.closeModal();
 
+    await trello.navigate({
+      url: `https://trello.com/b/${board.id}`,
+    });
+  } catch (error) {
+    console.error("VIEW ON BOARD ERROR:", error);
+  }
+}}
+    >
+      View on board ↗
+    </button>
+
+  </div>
+
+  {(
+    insightData?.cards?.filter((card) =>
+      card.memberNames?.includes(insightData?.team?.[0]?.name)
+    ) || []
+  )
+    .slice(0, 5)
+    .map((card) => (
+      <div
+        key={card.id}
+        style={styles.memberCard}
+        onClick={() =>
+          setSelectedCard({
+            name: card.name,
+            type: card.listName,
+            date: card.displayDate,
+          })
+        }
+      >
+
+        <div style={styles.memberCardName}>
+          {card.name}
         </div>
 
-        {sampleData.teamCards.Surbhi.map((card) => (
-          <div
-            key={card.name}
-            style={styles.memberCard}
+        <div style={styles.memberCardBottom}>
+
+          <span>
+            ▣ {card.displayDate}
+          </span>
+
+          <span
+            style={{
+              ...styles.stageBadge,
+              background:
+                card.listName === "Planning"
+                  ? "#eaf3ff"
+                  : card.listName === "In Progress"
+                  ? "#f3e8ff"
+                  : "#fff4d6",
+
+              color:
+                card.listName === "Planning"
+                  ? "#0c66e4"
+                  : card.listName === "In Progress"
+                  ? "#7c3aed"
+                  : "#b45309",
+            }}
           >
+            {card.listName}
+          </span>
 
-            <div style={styles.memberCardName}>
-              {card.name}
-            </div>
-
-            <div style={styles.memberCardBottom}>
-
-              <span>
-                ▣ {card.date}
-              </span>
-
-              <span
-                style={{
-                  ...styles.stageBadge,
-
-                  background:
-                    card.stage === "Planning"
-                      ? "#eaf3ff"
-                      : card.stage === "In Progress"
-                      ? "#f3e8ff"
-                      : "#fff4d6",
-
-                  color:
-                    card.stage === "Planning"
-                      ? "#0c66e4"
-                      : card.stage === "In Progress"
-                      ? "#7c3aed"
-                      : "#b45309",
-                }}
-              >
-                {card.stage}
-              </span>
-
-            </div>
-
-          </div>
-        ))}
-
-        <div style={styles.moreCards}>
-          +3 more cards
         </div>
 
       </div>
+    ))}
+
+</div>
 
     </div>
 
@@ -840,321 +856,249 @@ console.log("BOARD MEMBERS JSON:", JSON.stringify(board.members, null, 2));
   </>
 )}
       {/* ================= NEEDS ATTENTION ================= */}
-      {activeTab === "Needs Attention" && (
+{activeTab === "Needs Attention" && (
   <>
-    {/* SUMMARY CARDS */}
-    <div style={styles.attentionStatsGrid}>
+    {(() => {
+      const realCards = insightData?.cards ?? [];
 
-      <div style={{ ...styles.attentionStat, background: "#fff0f2" }}>
-        <div style={{ ...styles.attentionStatIcon, color: "#d92d20" }}>
-          !
-        </div>
-        <strong style={{ color: "#d92d20" }}>3</strong>
-        <span>Overdue cards</span>
-      </div>
+      const overdueCards = realCards.filter(
+        (card) => card.isOverdue
+      );
 
-      <div style={{ ...styles.attentionStat, background: "#fff4ed" }}>
-        <div style={{ ...styles.attentionStatIcon, color: "#e8590c" }}>
-          ◷
-        </div>
-        <strong style={{ color: "#e8590c" }}>6</strong>
-        <span>Due this week</span>
-      </div>
+      const dueThisWeekCards = realCards.filter(
+        (card) => card.isDueThisWeek
+      );
 
-      <div style={{ ...styles.attentionStat, background: "#fff8e6" }}>
-        <div style={{ ...styles.attentionStatIcon, color: "#d97706" }}>
-          ≡
-        </div>
-        <strong style={{ color: "#d97706" }}>2</strong>
-        <span>Unassigned cards</span>
-      </div>
+      const unassignedCards = realCards.filter(
+        (card) => card.isUnassigned
+      );
 
-      <div style={{ ...styles.attentionStat, background: "#edf5ff" }}>
-        <div style={{ ...styles.attentionStatIcon, color: "#0c66e4" }}>
-          ▣
-        </div>
-        <strong style={{ color: "#0c66e4" }}>1</strong>
-        <span>No due date</span>
-      </div>
+      const noDueDateCards = realCards.filter(
+        (card) => card.hasNoDueDate
+      );
 
-    </div>
+      return (
+        <>
+          {/* SUMMARY CARDS */}
+          <div style={styles.attentionStatsGrid}>
 
+            <div style={{ ...styles.attentionStat, background: "#fff0f2" }}>
+              <div style={{ ...styles.attentionStatIcon, color: "#d92d20" }}>
+                !
+              </div>
+              <strong style={{ color: "#d92d20" }}>
+                {overdueCards.length}
+              </strong>
+              <span>Overdue cards</span>
+            </div>
 
-    {/* OVERDUE CARDS */}
-    <div style={styles.attentionPanel}>
+            <div style={{ ...styles.attentionStat, background: "#fff4ed" }}>
+              <div style={{ ...styles.attentionStatIcon, color: "#e8590c" }}>
+                ◷
+              </div>
+              <strong style={{ color: "#e8590c" }}>
+                {dueThisWeekCards.length}
+              </strong>
+              <span>Due this week</span>
+            </div>
 
-      <div style={styles.attentionSectionHeader}>
-  <div>
-    <span
-      style={{
-        ...styles.attentionDot,
-        background: "#d92d20",
-      }}
-    />
-    <strong>Overdue cards (3)</strong>
-  </div>
+            <div style={{ ...styles.attentionStat, background: "#fff8e6" }}>
+              <div style={{ ...styles.attentionStatIcon, color: "#d97706" }}>
+                ≡
+              </div>
+              <strong style={{ color: "#d97706" }}>
+                {unassignedCards.length}
+              </strong>
+              <span>Unassigned cards</span>
+            </div>
 
-  <button
-    style={styles.viewAllButton}
-    onClick={() => setShowOverdueModal(true)}
-  >
-    View all →
-  </button>
-</div>
+            <div style={{ ...styles.attentionStat, background: "#edf5ff" }}>
+              <div style={{ ...styles.attentionStatIcon, color: "#0c66e4" }}>
+                ▣
+              </div>
+              <strong style={{ color: "#0c66e4" }}>
+                {noDueDateCards.length}
+              </strong>
+              <span>No due date</span>
+            </div>
 
-
-      <div
-        style={styles.attentionCardRow}
-        onClick={() =>
-          setSelectedCard({
-            name: "Finalize media plan",
-            type: "Overdue",
-            date: "Sep 12",
-          })
-        }
-      >
-        <span style={styles.attentionCardIcon}>▣</span>
-
-        <span style={styles.attentionCardName}>
-          Finalize media plan
-        </span>
-
-        <span style={styles.attentionDateDanger}>
-          ◷ Sep 12
-        </span>
-
-        <span style={styles.dangerBadge}>
-          Overdue
-        </span>
-
-        <span
-          style={{
-            ...styles.attentionAvatar,
-            background: "#64748b",
-          }}
-        >
-          S
-        </span>
-
-        <span style={styles.attentionStage}>
-          Review
-        </span>
-      </div>
+          </div>
 
 
-      <div
-        style={styles.attentionCardRow}
-        onClick={() =>
-          setSelectedCard({
-            name: "Update brand guidelines",
-            type: "Overdue",
-            date: "Sep 14",
-          })
-        }
-      >
-        <span style={styles.attentionCardIcon}>▣</span>
+          {/* OVERDUE CARDS */}
+          <div style={styles.attentionPanel}>
 
-        <span style={styles.attentionCardName}>
-          Update brand guidelines
-        </span>
+            <div style={styles.attentionSectionHeader}>
+              <div>
+                <span
+                  style={{
+                    ...styles.attentionDot,
+                    background: "#d92d20",
+                  }}
+                />
+                <strong>
+                  Overdue cards ({overdueCards.length})
+                </strong>
+              </div>
 
-        <span style={styles.attentionDateDanger}>
-          ◷ Sep 14
-        </span>
-
-        <span style={styles.dangerBadge}>
-          Overdue
-        </span>
-
-        <span
-          style={{
-            ...styles.attentionAvatar,
-            background: "#64748b",
-          }}
-        >
-          R
-        </span>
-
-        <span style={styles.attentionStage}>
-          In Progress
-        </span>
-      </div>
+              <button
+                style={styles.viewAllButton}
+                onClick={() => setShowOverdueModal(true)}
+              >
+                View all →
+              </button>
+            </div>
 
 
-      <div
-        style={styles.attentionCardRow}
-        onClick={() =>
-          setSelectedCard({
-            name: "Prepare launch assets",
-            type: "Overdue",
-            date: "Sep 15",
-          })
-        }
-      >
-        <span style={styles.attentionCardIcon}>▣</span>
+            {overdueCards.slice(0, 3).map((card) => (
+              <div
+                key={card.id}
+                style={styles.attentionCardRow}
+                onClick={() =>
+                  setSelectedCard({
+                    name: card.name,
+                    type: "Overdue",
+                    date: card.displayDate,
+                  })
+                }
+              >
+                <span style={styles.attentionCardIcon}>
+                  ▣
+                </span>
 
-        <span style={styles.attentionCardName}>
-          Prepare launch assets
-        </span>
+                <span style={styles.attentionCardName}>
+                  {card.name}
+                </span>
 
-        <span style={styles.attentionDateDanger}>
-          ◷ Sep 15
-        </span>
+                <span style={styles.attentionDateDanger}>
+                  ◷ {card.displayDate}
+                </span>
 
-        <span style={styles.dangerBadge}>
-          Overdue
-        </span>
+                <span style={styles.dangerBadge}>
+                  Overdue
+                </span>
 
-        <span
-          style={{
-            ...styles.attentionAvatar,
-            background: "#0c66e4",
-          }}
-        >
-          A
-        </span>
+                <span
+                  style={{
+                    ...styles.attentionAvatar,
+                    background: "#64748b",
+                  }}
+                >
+                  {card.memberNames?.length
+                    ? card.memberNames[0].charAt(0)
+                    : "•"}
+                </span>
 
-        <span style={styles.attentionStage}>
-          Planning
-        </span>
-      </div>
+                <span style={styles.attentionStage}>
+                  {card.listName}
+                </span>
+              </div>
+            ))}
 
-
-      {/* DUE THIS WEEK */}
-      <div
-        style={{
-          ...styles.attentionSectionHeader,
-          marginTop: "14px",
-        }}
-      >
-        <div>
-          <span
-            style={{
-              ...styles.attentionDot,
-              background: "#e8590c",
-            }}
-          />
-          <strong>Due this week (6)</strong>
-        </div>
-
-       <button
-  style={styles.viewAllButton}
-  onClick={() => setShowDueWeekModal(true)}
->
-  View all →
-</button>
-      </div>
+            {overdueCards.length > 3 && (
+              <div style={styles.moreCards}>
+                +{overdueCards.length - 3} more cards
+              </div>
+            )}
 
 
-      <div style={styles.attentionCardRow}>
-        <span style={styles.attentionCardIcon}>▣</span>
+            {/* DUE THIS WEEK */}
+            <div
+              style={{
+                ...styles.attentionSectionHeader,
+                marginTop: "14px",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    ...styles.attentionDot,
+                    background: "#e8590c",
+                  }}
+                />
 
-        <span style={styles.attentionCardName}>
-          Review ad creatives
-        </span>
+                <strong>
+                  Due this week ({dueThisWeekCards.length})
+                </strong>
+              </div>
 
-        <span style={styles.attentionDate}>
-          ◷ Sep 16
-        </span>
-
-        <span style={styles.weekBadge}>
-          Due this week
-        </span>
-
-        <span
-          style={{
-            ...styles.attentionAvatar,
-            background: "#64748b",
-          }}
-        >
-          P
-        </span>
-
-        <span style={styles.attentionStage}>
-          Review
-        </span>
-      </div>
-
-
-      <div style={styles.attentionCardRow}>
-        <span style={styles.attentionCardIcon}>▣</span>
-
-        <span style={styles.attentionCardName}>
-          Coordinate with agency
-        </span>
-
-        <span style={styles.attentionDate}>
-          ◷ Sep 17
-        </span>
-
-        <span style={styles.weekBadge}>
-          Due this week
-        </span>
-
-        <span
-          style={{
-            ...styles.attentionAvatar,
-            background: "#64748b",
-          }}
-        >
-          S
-        </span>
-
-        <span style={styles.attentionStage}>
-          In Progress
-        </span>
-      </div>
+              <button
+                style={styles.viewAllButton}
+                onClick={() => setShowDueWeekModal(true)}
+              >
+                View all →
+              </button>
+            </div>
 
 
-      <div style={styles.attentionCardRow}>
-        <span style={styles.attentionCardIcon}>▣</span>
+            {dueThisWeekCards.slice(0, 3).map((card) => (
+              <div
+                key={card.id}
+                style={styles.attentionCardRow}
+                onClick={() =>
+                  setSelectedCard({
+                    name: card.name,
+                    type: "Due this week",
+                    date: card.displayDate,
+                  })
+                }
+              >
+                <span style={styles.attentionCardIcon}>
+                  ▣
+                </span>
 
-        <span style={styles.attentionCardName}>
-          Test tracking setup
-        </span>
+                <span style={styles.attentionCardName}>
+                  {card.name}
+                </span>
 
-        <span style={styles.attentionDate}>
-          ◷ Sep 18
-        </span>
+                <span style={styles.attentionDate}>
+                  ◷ {card.displayDate}
+                </span>
 
-        <span style={styles.weekBadge}>
-          Due this week
-        </span>
+                <span style={styles.weekBadge}>
+                  Due this week
+                </span>
 
-        <span
-          style={{
-            ...styles.attentionAvatar,
-            background: "#64748b",
-          }}
-        >
-          R
-        </span>
+                <span
+                  style={{
+                    ...styles.attentionAvatar,
+                    background: "#64748b",
+                  }}
+                >
+                  {card.memberNames?.length
+                    ? card.memberNames[0].charAt(0)
+                    : "•"}
+                </span>
 
-        <span style={styles.attentionStage}>
-          In Progress
-        </span>
-      </div>
+                <span style={styles.attentionStage}>
+                  {card.listName}
+                </span>
+              </div>
+            ))}
+
+            {dueThisWeekCards.length > 3 && (
+              <div style={styles.moreCards}>
+                +{dueThisWeekCards.length - 3} more cards
+              </div>
+            )}
+
+          </div>
 
 
-      <div style={styles.moreCards}>
-        +3 more cards
-      </div>
+          {/* TIP */}
+          <div style={styles.tip}>
+            <span style={styles.tipIcon}>♧</span>
 
-    </div>
-
-
-    {/* TIP */}
-    <div style={styles.tip}>
-      <span style={styles.tipIcon}>♧</span>
-
-      <span>
-        <strong>Tip:</strong> Click on any card to open it, or use
-        "View all" to see all cards on your board.
-      </span>
-    </div>
+            <span>
+              <strong>Tip:</strong> Click on any card to open it, or use
+              "View all" to see all cards on your board.
+            </span>
+          </div>
+        </>
+      );
+    })()}
   </>
 )}
-
       {/* CARD POPUP */}
       {selectedCard && (
         <div style={styles.overlay}>
@@ -1178,26 +1122,40 @@ console.log("BOARD MEMBERS JSON:", JSON.stringify(board.members, null, 2));
 </button>
 
             <h2 style={styles.modalTitle}>{selectedCard.name}</h2>
+              {(() => {
+  const realCard = insightData?.cards?.find(
+    (card) => card.name === selectedCard.name
+  );
 
-            <div style={styles.modalRow}>
-              <strong>Status</strong>
-              <span>{selectedCard.type}</span>
-            </div>
+  return (
+    <>
+      <div style={styles.modalRow}>
+        <strong>Status</strong>
+        <span>
+          {realCard?.listName || selectedCard.type || "Unknown"}
+        </span>
+      </div>
 
-            <div style={styles.modalRow}>
-              <strong>Due date</strong>
-              <span>{selectedCard.date}</span>
-            </div>
+      <div style={styles.modalRow}>
+        <strong>Due date</strong>
+        <span>
+          {realCard?.displayDate || selectedCard.date || "No due date"}
+        </span>
+      </div>
 
-            <div style={styles.modalRow}>
-              <strong>Priority</strong>
-              <span>High</span>
-            </div>
+      <div style={styles.modalRow}>
+        <strong>Assigned to</strong>
+        <span>
+          {realCard?.memberNames?.length
+            ? realCard.memberNames.join(", ")
+            : "Unassigned"}
+        </span>
+      </div>
+    </>
+  );
+})()}
+            
 
-            <div style={styles.modalRow}>
-              <strong>Assigned to</strong>
-              <span>Unassigned</span>
-            </div>
           </div>
         </div>
       )}
@@ -1213,60 +1171,212 @@ console.log("BOARD MEMBERS JSON:", JSON.stringify(board.members, null, 2));
       </button>
 
       <h2 style={styles.overdueModalTitle}>
-        🔴 Overdue Cards (3)
+        🔴 Overdue Cards (
+        {insightData?.cards?.filter((card) => card.isOverdue).length || 0}
+        )
       </h2>
 
       <p style={styles.overdueModalSubtitle}>
-        These cards are past their due date and need attention
+        These cards are past their due date and need attention.
       </p>
+      <div
+  style={{
+    display: "flex",
+    justifyContent: "flex-end",
+    marginBottom: "14px",
+  }}
+>
+  <select
+    style={styles.sortSelect}
+    value={attentionSort}
+    onChange={(e) => setAttentionSort(e.target.value)}
+  >
+    <option>Due date — Oldest first</option>
+    <option>Due date — Newest first</option>
+    <option>Card name — A–Z</option>
+  </select>
+</div>
 
-      <div style={styles.overdueModalCard}>
-        <div>
-          <strong>Finalize media plan</strong>
-          <p>Finalize the media buying plan and get final approvals from stakeholders.</p>
-        </div>
+      {[...(insightData?.cards || [])]
+  .filter((card) => card.isOverdue)
+  .sort((a, b) => {
+    if (attentionSort === "Card name — A–Z") {
+      return a.name.localeCompare(b.name);
+    }
 
-        <div style={styles.overdueModalMeta}>
-          <span>Sep 12</span>
-          <span>● Surbhi</span>
-          <span>Review</span>
-        </div>
-      </div>
+    const dateA = new Date(a.displayDate).getTime();
+    const dateB = new Date(b.displayDate).getTime();
 
-      <div style={styles.overdueModalCard}>
-        <div>
-          <strong>Update brand guidelines</strong>
-          <p>Review and update feedback and update the brand guidelines document.</p>
-        </div>
+    if (attentionSort === "Due date — Newest first") {
+      return dateB - dateA;
+    }
 
-        <div style={styles.overdueModalMeta}>
-          <span>Sep 14</span>
-          <span>● Rahul</span>
-          <span>In Progress</span>
-        </div>
-      </div>
+    return dateA - dateB;
+  })
+  .map((card) => (
+          <div
+            key={card.id}
+            style={styles.overdueModalCard}
+            onClick={() =>
+              setSelectedCard({
+                name: card.name,
+                type: "Overdue",
+                date: card.displayDate,
+              })
+            }
+          >
+            <div>
+              <strong>{card.name}</strong>
 
-      <div style={styles.overdueModalCard}>
-        <div>
-          <strong>Prepare launch assets</strong>
-          <p>Finalize creative assets for the product launch campaign.</p>
-        </div>
+              <p>
+                {card.description || "No description available."}
+              </p>
+            </div>
 
-        <div style={styles.overdueModalMeta}>
-          <span>Sep 15</span>
-          <span>● Amit</span>
-          <span>Planning</span>
+            <div style={styles.overdueModalMeta}>
+              <span>{card.displayDate}</span>
+
+              <span>
+                ●{" "}
+                {card.memberNames?.length
+                  ? card.memberNames.join(", ")
+                  : "Unassigned"}
+              </span>
+
+              <span>{card.listName}</span>
+            </div>
+          </div>
+        ))}
+
+      {(!insightData?.cards ||
+        insightData.cards.filter((card) => card.isOverdue).length === 0) && (
+        <div style={styles.moreCards}>
+          No overdue cards 🎉
         </div>
-      </div>
+      )}
 
       <div style={styles.overdueModalTip}>
-        💡 Tip: Click on a card to open it, or use the button to jump directly.
+        💡 Click on a card to view its details.
       </div>
 
       <div style={styles.overdueModalFooter}>
         <button
           style={styles.modalCloseButton}
           onClick={() => setShowOverdueModal(false)}
+        >
+          Close
+        </button>
+      </div>
+
+    </div>
+  </div>
+)}
+
+
+{showDueWeekModal && (
+  <div style={styles.overlay}>
+    <div style={styles.overdueModal}>
+
+      <button
+        style={styles.overdueCloseButton}
+        onClick={() => setShowDueWeekModal(false)}
+      >
+        ×
+      </button>
+
+      <h2 style={styles.overdueModalTitle}>
+        🟠 Due This Week (
+        {insightData?.cards?.filter((card) => card.isDueThisWeek).length || 0}
+        )
+      </h2>
+
+      <p style={styles.overdueModalSubtitle}>
+        These cards are due within this week.
+      </p>
+      <div
+  style={{
+    display: "flex",
+    justifyContent: "flex-end",
+    marginBottom: "14px",
+  }}
+>
+  <select
+    style={styles.sortSelect}
+    value={attentionSort}
+    onChange={(e) => setAttentionSort(e.target.value)}
+  >
+    <option>Due date — Oldest first</option>
+    <option>Due date — Newest first</option>
+    <option>Card name — A–Z</option>
+  </select>
+</div>
+
+      {[...(insightData?.cards || [])]
+  .filter((card) => card.isDueThisWeek)
+  .sort((a, b) => {
+    if (attentionSort === "Card name — A–Z") {
+      return a.name.localeCompare(b.name);
+    }
+
+    const dateA = new Date(a.displayDate).getTime();
+    const dateB = new Date(b.displayDate).getTime();
+
+    if (attentionSort === "Due date — Newest first") {
+      return dateB - dateA;
+    }
+
+    return dateA - dateB;
+  })
+  .map((card) => (
+          <div
+            key={card.id}
+            style={styles.overdueModalCard}
+            onClick={() =>
+              setSelectedCard({
+                name: card.name,
+                type: "Due this week",
+                date: card.displayDate,
+              })
+            }
+          >
+            <div>
+              <strong>{card.name}</strong>
+
+              <p>
+                {card.description || "No description available."}
+              </p>
+            </div>
+
+            <div style={styles.overdueModalMeta}>
+              <span>{card.displayDate}</span>
+
+              <span>
+                ●{" "}
+                {card.memberNames?.length
+                  ? card.memberNames.join(", ")
+                  : "Unassigned"}
+              </span>
+
+              <span>{card.listName}</span>
+            </div>
+          </div>
+        ))}
+
+      {(!insightData?.cards ||
+        insightData.cards.filter((card) => card.isDueThisWeek).length === 0) && (
+        <div style={styles.moreCards}>
+          No cards are due this week.
+        </div>
+      )}
+
+      <div style={styles.overdueModalTip}>
+        💡 Click on a card to view its details.
+      </div>
+
+      <div style={styles.overdueModalFooter}>
+        <button
+          style={styles.modalCloseButton}
+          onClick={() => setShowDueWeekModal(false)}
         >
           Close
         </button>
@@ -2409,14 +2519,7 @@ attentionStage: {
   fontSize: "7px",
 },
 
-dangerBadge: {
-  color: "#d92d20",
-  background: "#fff0f2",
-  padding: "4px",
-  borderRadius: "3px",
-  textAlign: "center",
-  fontSize: "6px",
-},
+
 overdueModal: {
   position: "relative",
   width: "360px",
