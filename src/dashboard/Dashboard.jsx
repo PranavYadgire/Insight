@@ -94,14 +94,42 @@ const sampleData = {
   ],
 },
 };
+const stageColors = [
+  "#2f80ed",
+  "#8b5cf6",
+  "#f59e0b",
+  "#22c55e",
+  "#ec4899",
+  "#06b6d4",
+  "#f97316",
+  "#84cc16",
+];
+
+function getStageColor(stageName) {
+  if (!stageName) return stageColors[0];
+
+  let hash = 0;
+
+  for (let i = 0; i < stageName.length; i++) {
+    hash = stageName.charCodeAt(i) + ((hash << 5) - hash);
+  }
+
+  return stageColors[Math.abs(hash) % stageColors.length];
+}
 
 export default function Dashboard({ t }) {
   const [activeTab, setActiveTab] = useState("Overview");
 const [selectedCard, setSelectedCard] = useState(null);
 const [selectedStage, setSelectedStage] = useState(null);
+const [teamMetric, setTeamMetric] = useState("Cards assigned");
+const [showAllTeamCards, setShowAllTeamCards] = useState(false);
+
+const [selectedTeamMember, setSelectedTeamMember] = useState(null);
 const [attentionSort, setAttentionSort] = useState("Due date — Oldest first");
 const [showOverdueModal, setShowOverdueModal] = useState(false);
 const [showDueWeekModal, setShowDueWeekModal] = useState(false);
+const [attentionModal, setAttentionModal] = useState(null);
+
 const [insightData, setInsightData] = useState(null);
 const [dataLoading, setDataLoading] = useState(true);
 const [dataError, setDataError] = useState(null);
@@ -245,14 +273,7 @@ useEffect(() => {
                     <div
                       style={{
                         ...styles.progressBar,
-                        background:
-                          stage.name === "Planning"
-                            ? "#0c66e4"
-                            : stage.name === "In Progress"
-                            ? "#8b5cf6"
-                            : stage.name === "Review"
-                            ? "#f59e0b"
-                            : "#22c55e",
+                        background: getStageColor(stage.name),
                         width: `${
   (stage.count /
     (insightData?.overview?.total ?? sampleData.overview.total)) *
@@ -426,13 +447,13 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
                   ...styles.chartBar,
                   height: `${stage.count * 12}px`,
                   background:
-                    stage.name === "Planning"
-                      ? "#2f80ed"
-                      : stage.name === "In Progress"
-                      ? "#8b5cf6"
-                      : stage.name === "Review"
-                      ? "#f59e0b"
-                      : "#22c55e",
+  stage.name === "Planning"
+    ? "#2f80ed"
+    : stage.name === "In Progress"
+    ? "#8b5cf6"
+    : stage.name === "Review"
+    ? "#f59e0b"
+    : "#22c55e",
                 }}
               />
 
@@ -471,14 +492,7 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
               <div
                 style={{
                   ...styles.progressBar,
-                  background:
-                    stage.name === "Planning"
-                      ? "#2f80ed"
-                      : stage.name === "In Progress"
-                      ? "#8b5cf6"
-                      : stage.name === "Review"
-                      ? "#f59e0b"
-                      : "#22c55e",
+                  background: getStageColor(stage.name),
                  width: `${
   (stage.count /
     (insightData?.overview?.total ?? sampleData.overview.total)) *
@@ -514,14 +528,7 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
             <span
               style={{
                 ...styles.stageDot,
-                background:
-                  stage.name === "Planning"
-                    ? "#2f80ed"
-                    : stage.name === "In Progress"
-                    ? "#8b5cf6"
-                    : stage.name === "Review"
-                    ? "#f59e0b"
-                    : "#22c55e",
+                background: getStageColor(stage.name),
               }}
             />
 
@@ -578,10 +585,16 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
         )}
 
         {remainingCards > 0 && (
-          <div style={styles.moreCards}>
-            +{remainingCards} more cards
-          </div>
-        )}
+  <div
+    style={{
+      ...styles.moreCards,
+      cursor: "pointer",
+    }}
+    onClick={() => setSelectedStage(stage.name)}
+  >
+    +{remainingCards} more cards
+  </div>
+)}
       </div>
     );
   })}
@@ -600,271 +613,437 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
 )}
 
       {/* ================= TEAM ================= */}
-      {activeTab === "Team" && (
+      {/* ================= TEAM ================= */}
+{activeTab === "Team" && (
   <>
-    <div style={styles.teamMainGrid}>
+    {(() => {
+      const teamData = insightData?.team ?? sampleData.team;
+      const realCards = insightData?.cards ?? [];
 
-      {/* LEFT: TEAM WORKLOAD */}
-      <div style={styles.teamWorkloadPanel}>
+      const selectedMember =
+        teamData.find(
+          (member) => member.name === selectedTeamMember
+        ) || teamData[0];
 
-        <div style={styles.teamPanelHeader}>
-          <div>
-            <h2 style={styles.panelTitle}>Team workload</h2>
+      const selectedMemberName =
+        selectedMember?.name || "Team member";
 
-            <div style={styles.chartSubtitle}>
-             Total {insightData?.overview?.total ?? sampleData.overview.total} cards
-            </div>
-          </div>
-
-          <select style={styles.teamSelect}>
-            <option>Cards assigned</option>
-            <option>Cards completed</option>
-            <option>Due dates</option>
-          </select>
-        </div>
-
-{(insightData?.team ?? sampleData.team).map((member) => (          <div
-            key={member.name}
-            style={styles.teamWorkloadRow}
-          >
-            <div style={styles.teamMemberName}>
-
-              <span
-                style={{
-                  ...styles.memberAvatar,
-                  background:
-                    member.name === "Surbhi"
-                      ? "#0c66e4"
-                      : member.name === "Amit"
-                      ? "#0c66e4"
-                      : member.name === "Rahul"
-                      ? "#00875a"
-                      : member.name === "Priya"
-                      ? "#00a3bf"
-                      : "#dfe1e6",
-
-                  color:
-                    member.name === "Unassigned"
-                      ? "#5e6c84"
-                      : "#ffffff",
-                }}
-              >
-                {member.name === "Unassigned"
-                  ? "•"
-                  : member.name.charAt(0)}
-              </span>
-
-              <span>{member.name}</span>
-            </div>
-
-            <div style={styles.teamWorkloadBarBackground}>
-              <div
-                style={{
-                  ...styles.teamWorkloadBar,
-
-                  background:
-                    member.name === "Surbhi"
-                      ? "#2f80ed"
-                      : member.name === "Amit"
-                      ? "#8b5cf6"
-                      : member.name === "Rahul"
-                      ? "#f59e0b"
-                      : member.name === "Priya"
-                      ? "#22c55e"
-                      : "#c4c9d1",
-
-                  width: `${
-                    (member.count /
-                      Math.max(
-  ...(insightData?.team ?? sampleData.team).map((m) => m.count)
-)) *
-                    100
-                  }%`,
-                }}
-              />
-            </div>
-
-            <strong style={styles.teamCount}>
-              {member.count}
-            </strong>
-          </div>
-        ))}
-
-        {/* LEGEND */}
-        <div style={styles.teamLegend}>
-
-          <span>
-            <i
-              style={{
-                ...styles.legendDot,
-                background: "#2f80ed",
-              }}
-            />
-            Planning
-          </span>
-
-          <span>
-            <i
-              style={{
-                ...styles.legendDot,
-                background: "#8b5cf6",
-              }}
-            />
-            In Progress
-          </span>
-
-          <span>
-            <i
-              style={{
-                ...styles.legendDot,
-                background: "#f59e0b",
-              }}
-            />
-            Review
-          </span>
-
-          <span>
-            <i
-              style={{
-                ...styles.legendDot,
-                background: "#22c55e",
-              }}
-            />
-            Completed
-          </span>
-
-        </div>
-
-        {/* KEY INSIGHT */}
-        <div style={styles.keyInsight}>
-
-          <span style={styles.keyInsightIcon}>
-            ♧
-          </span>
-
-          <div>
-            <strong>Key insight</strong>
-
-            <p style={styles.keyInsightText}>
-              Surbhi has the highest workload (8 cards),
-              which is 33% of the total board workload.
-            </p>
-          </div>
-
-        </div>
-
-      </div>
-
-      {/* RIGHT: TEAM MEMBER'S CARDS */}
-<div style={styles.teamCardsPanel}>
-
-  <div style={styles.teamPanelHeader}>
-
-    <h2 style={styles.panelTitle}>
-      {insightData?.team?.[0]?.name || "Team member"}'s cards (
-      {insightData?.team?.[0]?.count || 0}
-      )
-    </h2>
-
-    <button
-      style={styles.viewAllButton}
-      onClick={async () => {
-  console.log("VIEW ON BOARD CLICKED");
-
-  try {
-    const trello = window.TrelloPowerUp.iframe();
-
-    const board = await trello.board("id");
-
-    console.log("CURRENT BOARD:", board);
-
-    await trello.closeModal();
-
-    await trello.navigate({
-      url: `https://trello.com/b/${board.id}`,
-    });
-  } catch (error) {
-    console.error("VIEW ON BOARD ERROR:", error);
-  }
-}}
-    >
-      View on board ↗
-    </button>
-
-  </div>
-
-  {(
-    insightData?.cards?.filter((card) =>
-      card.memberNames?.includes(insightData?.team?.[0]?.name)
-    ) || []
-  )
-    .slice(0, 5)
-    .map((card) => (
-      <div
-        key={card.id}
-        style={styles.memberCard}
-        onClick={() =>
-          setSelectedCard({
-            name: card.name,
-            type: card.listName,
-            date: card.displayDate,
-          })
+      const getMemberCards = (memberName) => {
+        if (memberName === "Unassigned") {
+          return realCards.filter(
+            (card) =>
+              !card.idMembers ||
+              card.idMembers.length === 0
+          );
         }
-      >
 
-        <div style={styles.memberCardName}>
-          {card.name}
-        </div>
+        return realCards.filter((card) =>
+          card.memberNames?.includes(memberName)
+        );
+      };
 
-        <div style={styles.memberCardBottom}>
+      const getMetricCount = (member, metric) => {
+        if (metric === "Cards assigned") {
+          return member.count;
+        }
 
-          <span>
-            ▣ {card.displayDate}
-          </span>
+        const memberCards = getMemberCards(member.name);
 
-          <span
-            style={{
-              ...styles.stageBadge,
-              background:
-                card.listName === "Planning"
-                  ? "#eaf3ff"
-                  : card.listName === "In Progress"
-                  ? "#f3e8ff"
-                  : "#fff4d6",
+        if (metric === "Cards completed") {
+          return memberCards.filter(
+            (card) => card.isCompleted
+          ).length;
+        }
 
-              color:
-                card.listName === "Planning"
-                  ? "#0c66e4"
-                  : card.listName === "In Progress"
-                  ? "#7c3aed"
-                  : "#b45309",
-            }}
-          >
-            {card.listName}
-          </span>
+        if (metric === "Due dates") {
+          return memberCards.filter(
+            (card) => card.due
+          ).length;
+        }
 
-        </div>
+        return member.count;
+      };
 
-      </div>
-    ))}
+      const displayedTeam = teamData.map((member) => ({
+        ...member,
+        metricCount: getMetricCount(
+          member,
+          teamMetric
+        ),
+      }));
 
-</div>
+      const maxMetric = Math.max(
+        ...displayedTeam.map(
+          (member) => member.metricCount
+        ),
+        1
+      );
 
+      const selectedMemberCards =
+        getMemberCards(selectedMemberName);
+
+      const highestMember = [...displayedTeam].sort(
+        (a, b) => b.metricCount - a.metricCount
+      )[0];
+
+      const highestPercentage =
+        insightData?.overview?.total
+          ? Math.round(
+              (highestMember.metricCount /
+                insightData.overview.total) *
+                100
+            )
+          : 0;
+
+      const firstMemberCard =
+        selectedMemberCards[0];
+
+      return (
+        <>
+          <div style={styles.teamMainGrid}>
+
+            {/* LEFT: TEAM WORKLOAD */}
+            <div style={styles.teamWorkloadPanel}>
+
+              <div style={styles.teamPanelHeader}>
+                <div>
+                  <h2 style={styles.panelTitle}>
+                    Team workload
+                  </h2>
+
+                  <div style={styles.chartSubtitle}>
+                    Total{" "}
+                    {insightData?.overview?.total ??
+                      sampleData.overview.total}{" "}
+                    cards
+                  </div>
+                </div>
+
+                <select
+                  style={styles.teamSelect}
+                  value={teamMetric}
+                  onChange={(event) =>
+                    setTeamMetric(event.target.value)
+                  }
+                >
+                  <option value="Cards assigned">
+                    Cards assigned
+                  </option>
+
+                  <option value="Cards completed">
+                    Cards completed
+                  </option>
+
+                  <option value="Due dates">
+                    Due dates
+                  </option>
+                </select>
+              </div>
+
+              {/* TEAM MEMBERS */}
+              {displayedTeam.map((member) => (
+                <div
+                  key={member.name}
+                  style={{
+                    ...styles.teamWorkloadRow,
+                    cursor: "pointer",
+                    background:
+                      selectedMemberName ===
+                      member.name
+                        ? "#f4f7ff"
+                        : "transparent",
+                    borderRadius: "6px",
+                  }}
+                  onClick={() =>
+                    setSelectedTeamMember(
+                      member.name
+                    )
+                  }
+                >
+                  <div style={styles.teamMemberName}>
+
+                    <span
+                      style={{
+                        ...styles.memberAvatar,
+                        background:
+                          member.name ===
+                          "Unassigned"
+                            ? "#dfe1e6"
+                            : "#2f80ed",
+                        color:
+                          member.name ===
+                          "Unassigned"
+                            ? "#5e6c84"
+                            : "#ffffff",
+                      }}
+                    >
+                      {member.name ===
+                      "Unassigned"
+                        ? "•"
+                        : member.name
+                            .charAt(0)
+                            .toUpperCase()}
+                    </span>
+
+                    <span>
+                      {member.name}
+                    </span>
+                  </div>
+
+                  <div
+                    style={
+                      styles.teamWorkloadBarBackground
+                    }
+                  >
+                    <div
+                      style={{
+                        ...styles.teamWorkloadBar,
+                        background:
+                          member.name ===
+                          "Unassigned"
+                            ? "#c4c9d1"
+                            : "#2f80ed",
+                        width: `${
+                          (member.metricCount /
+                            maxMetric) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
+
+                  <strong
+                    style={styles.teamCount}
+                  >
+                    {member.metricCount}
+                  </strong>
+                </div>
+              ))}
+
+              {/* LEGEND */}
+              <div style={styles.teamLegend}>
+                <span>
+                  <i
+                    style={{
+                      ...styles.legendDot,
+                      background:
+                        "#2f80ed",
+                    }}
+                  />
+                  Assigned
+                </span>
+
+                <span>
+                  <i
+                    style={{
+                      ...styles.legendDot,
+                      background:
+                        "#22c55e",
+                    }}
+                  />
+                  Completed
+                </span>
+
+                <span>
+                  <i
+                    style={{
+                      ...styles.legendDot,
+                      background:
+                        "#f59e0b",
+                    }}
+                  />
+                  Due
+                </span>
+              </div>
+
+              {/* KEY INSIGHT */}
+              <div style={styles.keyInsight}>
+                <span
+                  style={
+                    styles.keyInsightIcon
+                  }
+                >
+                  ♧
+                </span>
+
+                <div>
+                  <strong>
+                    Key insight
+                  </strong>
+
+                  <p
+                    style={
+                      styles.keyInsightText
+                    }
+                  >
+                    {highestMember
+                      ? `${highestMember.name} has the highest ${teamMetric.toLowerCase()} (${highestMember.metricCount} cards).`
+                      : "No team workload data available."}
+                  </p>
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT: TEAM MEMBER CARDS */}
+            <div style={styles.teamCardsPanel}>
+
+              <div
+                style={
+                  styles.teamPanelHeader
+                }
+              >
+
+                <h2
+                  style={styles.panelTitle}
+                >
+                  {selectedMemberName}'s
+                  cards (
+                  {selectedMemberCards.length}
+                  )
+                </h2>
+
+                <button
+                  style={
+                    styles.viewAllButton
+                  }
+                  onClick={async () => {
+                    try {
+                      const trello =
+                        window.TrelloPowerUp.iframe();
+
+                      if (
+                        firstMemberCard?.url
+                      ) {
+                        await trello.navigate({
+                          url: firstMemberCard.url,
+                        });
+                      } else {
+                        const board =
+                          await trello.board(
+                            "id"
+                          );
+
+                        await trello.navigate({
+                          url: `https://trello.com/b/${board.id}`,
+                        });
+                      }
+                    } catch (error) {
+                      console.error(
+                        "VIEW ON BOARD ERROR:",
+                        error
+                      );
+                    }
+                  }}
+                >
+                  View on board ↗
+                </button>
+
+              </div>
+
+              {selectedMemberCards
+  .slice(
+    0,
+    showAllTeamCards
+      ? selectedMemberCards.length
+      : 5
+  )
+  .map((card) => (
+                  <div
+                    key={card.id}
+                    style={{
+                      ...styles.memberCard,
+                      cursor: "pointer",
+                    }}
+                    onClick={() =>
+                      setSelectedCard({
+                        name: card.name,
+                        type: card.listName,
+                        date: card.displayDate,
+                      })
+                    }
+                  >
+
+                    <div
+                      style={
+                        styles.memberCardName
+                      }
+                    >
+                      {card.name}
+                    </div>
+
+                    <div
+                      style={
+                        styles.memberCardBottom
+                      }
+                    >
+
+                      <span>
+                        ▣{" "}
+                        {card.displayDate}
+                      </span>
+
+                      <span
+                        style={{
+                          ...styles.stageBadge,
+                          background:
+                            "#eaf3ff",
+                          color:
+                            "#0c66e4",
+                        }}
+                      >
+                        {card.listName}
+                      </span>
+
+                    </div>
+
+                  </div>
+                ))}
+
+              {selectedMemberCards.length ===
+                0 && (
+                <div
+                  style={styles.moreCards}
+                >
+                  No cards assigned to this
+                  member.
+                </div>
+              )}
+
+             {selectedMemberCards.length > 5 &&
+  !showAllTeamCards && (
+    <div
+      style={{
+        ...styles.moreCards,
+        cursor: "pointer",
+      }}
+      onClick={() =>
+        setShowAllTeamCards(true)
+      }
+    >
+      +{selectedMemberCards.length - 5} more cards
     </div>
+)}
 
-    {/* TIP */}
-    <div style={styles.tip}>
 
-      <span style={styles.tipIcon}>
-        ♧
-      </span>
+            </div>
+          </div>
 
-      <span>
-        <strong>Tip:</strong> Click on a member or card
-        to open it on your board.
-      </span>
+          {/* TIP */}
+          <div style={styles.tip}>
+            <span style={styles.tipIcon}>
+              ♧
+            </span>
 
-    </div>
+            <span>
+              <strong>Tip:</strong> Click on
+              a team member or card to view
+              their work.
+            </span>
+          </div>
+        </>
+      );
+    })()}
   </>
 )}
       {/* ================= NEEDS ATTENTION ================= */}
@@ -878,7 +1057,7 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
       );
 
       const dueThisWeekCards = realCards.filter(
-        (card) => card.isDueThisWeek
+        (card) => card.isDueThisWeek && !card.isOverdue
       );
 
       const unassignedCards = realCards.filter(
@@ -889,57 +1068,189 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
         (card) => card.hasNoDueDate
       );
 
+      const renderAttentionCard = (card, type) => (
+        <div
+          key={card.id}
+          style={styles.attentionCardRow}
+          onClick={async () => {
+            try {
+              const trello = window.TrelloPowerUp.iframe();
+
+              if (card.url) {
+                await trello.navigate({
+                  url: card.url,
+                });
+              } else {
+                setSelectedCard({
+                  name: card.name,
+                  type,
+                  date: card.displayDate,
+                });
+              }
+            } catch (error) {
+              console.error(
+                "OPEN ATTENTION CARD ERROR:",
+                error
+              );
+
+              setSelectedCard({
+                name: card.name,
+                type,
+                date: card.displayDate,
+              });
+            }
+          }}
+        >
+          <span style={styles.attentionCardIcon}>
+            ▣
+          </span>
+
+          <span style={styles.attentionCardName}>
+            {card.name}
+          </span>
+
+          <span
+            style={
+              type === "Overdue"
+                ? styles.attentionDateDanger
+                : styles.attentionDate
+            }
+          >
+            {card.due
+              ? `◷ ${card.displayDate}`
+              : "No due date"}
+          </span>
+
+          <span
+            style={
+              type === "Overdue"
+                ? styles.dangerBadge
+                : styles.weekBadge
+            }
+          >
+            {type}
+          </span>
+
+          <span
+            style={{
+              ...styles.attentionAvatar,
+              background: "#64748b",
+            }}
+          >
+            {card.memberNames?.length
+              ? card.memberNames[0].charAt(0)
+              : "•"}
+          </span>
+
+          <span style={styles.attentionStage}>
+            {card.listName}
+          </span>
+        </div>
+      );
+
       return (
         <>
           {/* SUMMARY CARDS */}
           <div style={styles.attentionStatsGrid}>
 
-            <div style={{ ...styles.attentionStat, background: "#fff0f2" }}>
-              <div style={{ ...styles.attentionStatIcon, color: "#d92d20" }}>
+            <div
+              style={{
+                ...styles.attentionStat,
+                background: "#fff0f2",
+              }}
+            >
+              <div
+                style={{
+                  ...styles.attentionStatIcon,
+                  color: "#d92d20",
+                }}
+              >
                 !
               </div>
+
               <strong style={{ color: "#d92d20" }}>
                 {overdueCards.length}
               </strong>
+
               <span>Overdue cards</span>
             </div>
 
-            <div style={{ ...styles.attentionStat, background: "#fff4ed" }}>
-              <div style={{ ...styles.attentionStatIcon, color: "#e8590c" }}>
+
+            <div
+              style={{
+                ...styles.attentionStat,
+                background: "#fff4ed",
+              }}
+            >
+              <div
+                style={{
+                  ...styles.attentionStatIcon,
+                  color: "#e8590c",
+                }}
+              >
                 ◷
               </div>
+
               <strong style={{ color: "#e8590c" }}>
                 {dueThisWeekCards.length}
               </strong>
+
               <span>Due this week</span>
             </div>
 
-            <div style={{ ...styles.attentionStat, background: "#fff8e6" }}>
-              <div style={{ ...styles.attentionStatIcon, color: "#d97706" }}>
+
+            <div
+              style={{
+                ...styles.attentionStat,
+                background: "#fff8e6",
+              }}
+            >
+              <div
+                style={{
+                  ...styles.attentionStatIcon,
+                  color: "#d97706",
+                }}
+              >
                 ≡
               </div>
+
               <strong style={{ color: "#d97706" }}>
                 {unassignedCards.length}
               </strong>
+
               <span>Unassigned cards</span>
             </div>
 
-            <div style={{ ...styles.attentionStat, background: "#edf5ff" }}>
-              <div style={{ ...styles.attentionStatIcon, color: "#0c66e4" }}>
+
+            <div
+              style={{
+                ...styles.attentionStat,
+                background: "#edf5ff",
+              }}
+            >
+              <div
+                style={{
+                  ...styles.attentionStatIcon,
+                  color: "#0c66e4",
+                }}
+              >
                 ▣
               </div>
+
               <strong style={{ color: "#0c66e4" }}>
                 {noDueDateCards.length}
               </strong>
+
               <span>No due date</span>
             </div>
 
           </div>
 
 
-          {/* OVERDUE CARDS */}
+          {/* ATTENTION PANEL */}
           <div style={styles.attentionPanel}>
 
+            {/* ================= OVERDUE ================= */}
             <div style={styles.attentionSectionHeader}>
               <div>
                 <span
@@ -948,6 +1259,7 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
                     background: "#d92d20",
                   }}
                 />
+
                 <strong>
                   Overdue cards ({overdueCards.length})
                 </strong>
@@ -955,66 +1267,46 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
 
               <button
                 style={styles.viewAllButton}
-                onClick={() => setShowOverdueModal(true)}
+                onClick={() =>
+                  setAttentionModal("overdue")
+                }
               >
                 View all →
               </button>
             </div>
 
 
-            {overdueCards.slice(0, 3).map((card) => (
-              <div
-                key={card.id}
-                style={styles.attentionCardRow}
-                onClick={() =>
-                  setSelectedCard({
-                    name: card.name,
-                    type: "Overdue",
-                    date: card.displayDate,
-                  })
-                }
-              >
-                <span style={styles.attentionCardIcon}>
-                  ▣
-                </span>
-
-                <span style={styles.attentionCardName}>
-                  {card.name}
-                </span>
-
-                <span style={styles.attentionDateDanger}>
-                  ◷ {card.displayDate}
-                </span>
-
-                <span style={styles.dangerBadge}>
-                  Overdue
-                </span>
-
-                <span
-                  style={{
-                    ...styles.attentionAvatar,
-                    background: "#64748b",
-                  }}
-                >
-                  {card.memberNames?.length
-                    ? card.memberNames[0].charAt(0)
-                    : "•"}
-                </span>
-
-                <span style={styles.attentionStage}>
-                  {card.listName}
-                </span>
-              </div>
-            ))}
+            {overdueCards
+              .slice(0, 3)
+              .map((card) =>
+                renderAttentionCard(
+                  card,
+                  "Overdue"
+                )
+              )}
 
             {overdueCards.length > 3 && (
-              <div style={styles.moreCards}>
+              <div
+                style={{
+                  ...styles.moreCards,
+                  cursor: "pointer",
+                }}
+                onClick={() =>
+                  setAttentionModal("overdue")
+                }
+              >
                 +{overdueCards.length - 3} more cards
               </div>
             )}
 
+            {overdueCards.length === 0 && (
+              <div style={styles.noItems}>
+                No overdue cards 🎉
+              </div>
+            )}
 
-            {/* DUE THIS WEEK */}
+
+            {/* ================= DUE THIS WEEK ================= */}
             <div
               style={{
                 ...styles.attentionSectionHeader,
@@ -1036,61 +1328,163 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
 
               <button
                 style={styles.viewAllButton}
-                onClick={() => setShowDueWeekModal(true)}
+                onClick={() =>
+                  setAttentionModal("due")
+                }
               >
                 View all →
               </button>
             </div>
 
 
-            {dueThisWeekCards.slice(0, 3).map((card) => (
-              <div
-                key={card.id}
-                style={styles.attentionCardRow}
-                onClick={() =>
-                  setSelectedCard({
-                    name: card.name,
-                    type: "Due this week",
-                    date: card.displayDate,
-                  })
-                }
-              >
-                <span style={styles.attentionCardIcon}>
-                  ▣
-                </span>
-
-                <span style={styles.attentionCardName}>
-                  {card.name}
-                </span>
-
-                <span style={styles.attentionDate}>
-                  ◷ {card.displayDate}
-                </span>
-
-                <span style={styles.weekBadge}>
-                  Due this week
-                </span>
-
-                <span
-                  style={{
-                    ...styles.attentionAvatar,
-                    background: "#64748b",
-                  }}
-                >
-                  {card.memberNames?.length
-                    ? card.memberNames[0].charAt(0)
-                    : "•"}
-                </span>
-
-                <span style={styles.attentionStage}>
-                  {card.listName}
-                </span>
-              </div>
-            ))}
+            {dueThisWeekCards
+              .slice(0, 3)
+              .map((card) =>
+                renderAttentionCard(
+                  card,
+                  "Due this week"
+                )
+              )}
 
             {dueThisWeekCards.length > 3 && (
-              <div style={styles.moreCards}>
+              <div
+                style={{
+                  ...styles.moreCards,
+                  cursor: "pointer",
+                }}
+                onClick={() =>
+                  setAttentionModal("due")
+                }
+              >
                 +{dueThisWeekCards.length - 3} more cards
+              </div>
+            )}
+
+            {dueThisWeekCards.length === 0 && (
+              <div style={styles.noItems}>
+                No cards are due this week.
+              </div>
+            )}
+
+
+            {/* ================= UNASSIGNED ================= */}
+            <div
+              style={{
+                ...styles.attentionSectionHeader,
+                marginTop: "14px",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    ...styles.attentionDot,
+                    background: "#d97706",
+                  }}
+                />
+
+                <strong>
+                  Unassigned cards ({unassignedCards.length})
+                </strong>
+              </div>
+
+              <button
+                style={styles.viewAllButton}
+                onClick={() =>
+                  setAttentionModal("unassigned")
+                }
+              >
+                View all →
+              </button>
+            </div>
+
+
+            {unassignedCards
+              .slice(0, 3)
+              .map((card) =>
+                renderAttentionCard(
+                  card,
+                  "Unassigned"
+                )
+              )}
+
+            {unassignedCards.length > 3 && (
+              <div
+                style={{
+                  ...styles.moreCards,
+                  cursor: "pointer",
+                }}
+                onClick={() =>
+                  setAttentionModal("unassigned")
+                }
+              >
+                +{unassignedCards.length - 3} more cards
+              </div>
+            )}
+
+            {unassignedCards.length === 0 && (
+              <div style={styles.noItems}>
+                No unassigned cards.
+              </div>
+            )}
+
+
+            {/* ================= NO DUE DATE ================= */}
+            <div
+              style={{
+                ...styles.attentionSectionHeader,
+                marginTop: "14px",
+              }}
+            >
+              <div>
+                <span
+                  style={{
+                    ...styles.attentionDot,
+                    background: "#0c66e4",
+                  }}
+                />
+
+                <strong>
+                  No due date ({noDueDateCards.length})
+                </strong>
+              </div>
+
+              <button
+                style={styles.viewAllButton}
+                onClick={() =>
+                  setAttentionModal("nodate")
+                }
+              >
+                View all →
+              </button>
+            </div>
+
+
+            {noDueDateCards
+              .slice(0, 3)
+              .map((card) =>
+                renderAttentionCard(
+                  card,
+                  "No due date"
+                )
+              )}
+
+            {noDueDateCards.length > 3 && (
+              <div
+                style={{
+                  ...styles.moreCards,
+                  cursor: "pointer",
+                }}
+                onClick={() =>
+                  setAttentionModal("nodate")
+                }
+              >
+                +{noDueDateCards.length - 3} more cards
+              </div>
+            )}
+
+            {noDueDateCards.length === 0 && (
+              <div style={styles.noItems}>
+                All cards have a due date.
               </div>
             )}
 
@@ -1099,11 +1493,14 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
 
           {/* TIP */}
           <div style={styles.tip}>
-            <span style={styles.tipIcon}>♧</span>
+            <span style={styles.tipIcon}>
+              ♧
+            </span>
 
             <span>
-              <strong>Tip:</strong> Click on any card to open it, or use
-              "View all" to see all cards on your board.
+              <strong>Tip:</strong> Click any card to
+              open it on Trello, or use View all to
+              see the complete list.
             </span>
           </div>
         </>
@@ -1111,6 +1508,9 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
     })()}
   </>
 )}
+  
+
+
 {/* STAGE CARDS POPUP */}
 {selectedStage && (
   <div style={styles.overlay}>
