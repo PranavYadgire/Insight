@@ -62,7 +62,7 @@ TrelloPowerUp.initialize({
         }
 
        return t.modal({
-  title: "Insight",
+  
   url: t.signUrl("./dashboard.html"),
   height: 520,
   fullscreen: false,

@@ -167,7 +167,39 @@ useEffect(() => {
   }
 
   loadInsightData();
+if (dataLoading) {
+  return (
+    <div
+      style={{
+        ...styles.container,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#44546f",
+        fontSize: "14px",
+      }}
+    >
+      Loading your board insights...
+    </div>
+  );
+}
 
+if (dataError || !insightData) {
+  return (
+    <div
+      style={{
+        ...styles.container,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        color: "#d92d20",
+        fontSize: "14px",
+      }}
+    >
+      {dataError || "Unable to load board insights."}
+    </div>
+  );
+}
   return () => {
     cancelled = true;
   };
