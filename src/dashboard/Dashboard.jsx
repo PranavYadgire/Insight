@@ -908,33 +908,18 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
                     styles.viewAllButton
                   }
                   onClick={async () => {
-                    try {
-                      const trello =
-                        window.TrelloPowerUp.iframe();
+  try {
+    const trello = window.TrelloPowerUp.iframe();
 
-                      if (
-                        firstMemberCard?.url
-                      ) {
-                        await trello.navigate({
-                          url: firstMemberCard.url,
-                        });
-                      } else {
-                        const board =
-                          await trello.board(
-                            "id"
-                          );
+    if (firstMemberCard?.id) {
+      await trello.showCard(firstMemberCard.id);
+    }
 
-                        await trello.navigate({
-                          url: `https://trello.com/b/${board.id}`,
-                        });
-                      }
-                    } catch (error) {
-                      console.error(
-                        "VIEW ON BOARD ERROR:",
-                        error
-                      );
-                    }
-                  }}
+    await trello.closeModal();
+  } catch (error) {
+    console.error("VIEW ON BOARD ERROR:", error);
+  }
+}}
                 >
                   View on board ↗
                 </button>
@@ -1509,7 +1494,135 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
   </>
 )}
   
+{/* NEEDS ATTENTION LIST MODAL */}
+{attentionModal && (() => {
+  const cards = insightData?.cards ?? [];
 
+  const modalConfig = {
+    overdue: {
+      title: "Overdue cards",
+      items: cards.filter((card) => card.isOverdue),
+    },
+    due: {
+      title: "Due this week",
+      items: cards.filter(
+        (card) => card.isDueThisWeek && !card.isOverdue
+      ),
+    },
+    unassigned: {
+      title: "Unassigned cards",
+      items: cards.filter((card) => card.isUnassigned),
+    },
+    nodate: {
+      title: "Cards without a due date",
+      items: cards.filter((card) => card.hasNoDueDate),
+    },
+  };
+
+  const config = modalConfig[attentionModal];
+
+  if (!config) return null;
+
+  const sortedCards = [...config.items].sort((a, b) => {
+    if (attentionSort === "Card name — A–Z") {
+      return a.name.localeCompare(b.name);
+    }
+
+    const dateA = a.due ? new Date(a.due).getTime() : Infinity;
+    const dateB = b.due ? new Date(b.due).getTime() : Infinity;
+
+    if (attentionSort === "Due date — Newest first") {
+      return dateB - dateA;
+    }
+
+    return dateA - dateB;
+  });
+
+  return (
+    <div style={styles.overlay}>
+      <div style={styles.attentionListModal}>
+        <button
+          style={styles.overdueCloseButton}
+          onClick={() => setAttentionModal(null)}
+        >
+          ×
+        </button>
+
+        <h2 style={styles.overdueModalTitle}>
+          {config.title} ({sortedCards.length})
+        </h2>
+
+        <p style={styles.overdueModalSubtitle}>
+          All cards in this category.
+        </p>
+
+        <div style={styles.attentionSortRow}>
+          <select
+            style={styles.sortSelect}
+            value={attentionSort}
+            onChange={(event) => setAttentionSort(event.target.value)}
+          >
+            <option>Due date — Oldest first</option>
+            <option>Due date — Newest first</option>
+            <option>Card name — A–Z</option>
+          </select>
+        </div>
+
+        {sortedCards.length === 0 ? (
+          <div style={styles.noItems}>
+            No cards in this category.
+          </div>
+        ) : (
+          sortedCards.map((card) => (
+            <div
+              key={card.id}
+              style={{
+                ...styles.overdueModalCard,
+                cursor: "pointer",
+              }}
+              onClick={async () => {
+                try {
+                  const trello = window.TrelloPowerUp.iframe();
+                  await trello.showCard(card.id);
+                  await trello.closeModal();
+                } catch (error) {
+                  console.error("OPEN ATTENTION CARD ERROR:", error);
+                }
+              }}
+            >
+              <div>
+                <strong>{card.name}</strong>
+                <p>
+                  {card.description || "No description available."}
+                </p>
+              </div>
+
+              <div style={styles.overdueModalMeta}>
+                <span>{card.displayDate || "No due date"}</span>
+                <span>
+                  ●{" "}
+                  {card.memberNames?.length
+                    ? card.memberNames.join(", ")
+                    : "Unassigned"}
+                </span>
+                <span>{card.listName}</span>
+              </div>
+            </div>
+          ))
+        )}
+
+        <div style={styles.overdueModalFooter}>
+          <button
+            style={styles.modalCloseButton}
+            onClick={() => setAttentionModal(null)}
+          >
+            Close
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+})()}
 
 {/* STAGE CARDS POPUP */}
 {selectedStage && (
@@ -1889,9 +2002,7 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
         ×
       </button>
 
-      <h2 style={styles.overdueModalTitle}>
-        🟠 Due This Week (6)
-      </h2>
+      
 
       <p style={styles.overdueModalSubtitle}>
         These cards are due within this week.
@@ -3087,5 +3198,22 @@ modalCloseButton: {
   padding: "5px 12px",
   fontSize: "7px",
   cursor: "pointer",
+},
+attentionListModal: {
+  position: "relative",
+  width: "min(720px, calc(100vw - 32px))",
+  maxHeight: "calc(100vh - 48px)",
+  overflowY: "auto",
+  background: "#ffffff",
+  borderRadius: "8px",
+  padding: "16px",
+  boxShadow: "0 8px 24px rgba(9, 30, 66, 0.25)",
+  boxSizing: "border-box",
+},
+
+attentionSortRow: {
+  display: "flex",
+  justifyContent: "flex-end",
+  marginBottom: "12px",
 },
 };
