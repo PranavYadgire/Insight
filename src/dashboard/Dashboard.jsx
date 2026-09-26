@@ -167,6 +167,14 @@ useEffect(() => {
   }
 
   loadInsightData();
+
+ 
+  return () => {
+    cancelled = true;
+  };
+}, []);
+
+  
 if (dataLoading) {
   return (
     <div
@@ -200,13 +208,6 @@ if (dataError || !insightData) {
     </div>
   );
 }
-  return () => {
-    cancelled = true;
-  };
-}, []);
-
-  
-
   return (
     <div style={styles.container}>
       {/* HEADER */}
