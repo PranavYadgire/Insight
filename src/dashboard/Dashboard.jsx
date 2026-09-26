@@ -435,7 +435,7 @@ useEffect(() => {
 Total {insightData?.overview?.total ?? sampleData.overview.total} cards        </div>
 
         <div style={styles.chartArea}>
-          {(insightData?.stages ?? sampleData.stages).map((stage) => (
+  {(insightData?.stages ?? sampleData.stages).map((stage, index) => (
             <div key={stage.name} style={styles.chartColumn}>
 
               <strong style={styles.chartValue}>
@@ -446,14 +446,9 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
                 style={{
                   ...styles.chartBar,
                   height: `${stage.count * 12}px`,
-                  background:
-  stage.name === "Planning"
-    ? "#2f80ed"
-    : stage.name === "In Progress"
-    ? "#8b5cf6"
-    : stage.name === "Review"
-    ? "#f59e0b"
-    : "#22c55e",
+                  background: ["#2f80ed", "#8b5cf6", "#f59e0b", "#22c55e"][
+  index % 4
+],
                 }}
               />
 
@@ -470,7 +465,7 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
       <div style={styles.stageBreakdownPanel}>
         <h2 style={styles.panelTitle}>Stage breakdown</h2>
 
-{(insightData?.stages ?? sampleData.stages).map((stage) => (
+{(insightData?.stages ?? sampleData.stages).map((stage, index) => (
             <div
             key={stage.name}
             style={styles.breakdownRow}
@@ -3126,12 +3121,12 @@ attentionStage: {
 
 overdueModal: {
   position: "relative",
-  width: "360px",
-  maxHeight: "420px",
+  width: "min(720px, calc(100vw - 48px))",
+  maxHeight: "min(420px, calc(100vh - 48px))",
   overflowY: "auto",
   background: "#ffffff",
-  borderRadius: "8px",
-  padding: "14px",
+  borderRadius: "10px",
+  padding: "18px 20px",
   boxShadow: "0 8px 24px rgba(9, 30, 66, 0.25)",
   boxSizing: "border-box",
 },
@@ -3148,20 +3143,25 @@ overdueCloseButton: {
 },
 
 overdueModalTitle: {
-  fontSize: "13px",
+  fontSize: "16px",
+  fontWeight: 700,
   color: "#172b4d",
-  margin: "0 0 3px",
+  margin: "0 0 4px",
 },
 
 overdueModalSubtitle: {
-  fontSize: "7px",
+  fontSize: "11px",
   color: "#5e6c84",
-  margin: "0 0 10px",
+  margin: "0 0 14px",
 },
 
 overdueModalCard: {
   borderBottom: "1px solid #ebecf0",
-  padding: "9px 0",
+  padding: "12px 0",
+  display: "flex",
+  justifyContent: "space-between",
+  alignItems: "center",
+  gap: "12px",
 },
 
 
@@ -3170,17 +3170,20 @@ overdueModalCard: {
 
 overdueModalMeta: {
   display: "flex",
+  alignItems: "center",
+  justifyContent: "flex-end",
+  flexWrap: "wrap",
   gap: "8px",
-  fontSize: "7px",
+  fontSize: "10px",
   color: "#5e6c84",
 },
 
 overdueModalTip: {
   background: "#edf5ff",
-  borderRadius: "4px",
-  padding: "7px",
-  marginTop: "10px",
-  fontSize: "7px",
+  borderRadius: "5px",
+  padding: "10px",
+  marginTop: "12px",
+  fontSize: "10px",
   color: "#172b4d",
 },
 
@@ -3194,9 +3197,9 @@ modalCloseButton: {
   border: "none",
   background: "#dfe1e6",
   color: "#172b4d",
-  borderRadius: "4px",
-  padding: "5px 12px",
-  fontSize: "7px",
+  borderRadius: "5px",
+  padding: "8px 16px",
+  fontSize: "10px",
   cursor: "pointer",
 },
 attentionListModal: {
