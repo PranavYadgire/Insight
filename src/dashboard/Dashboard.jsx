@@ -769,7 +769,7 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
               </div>
 
               {/* TEAM MEMBERS */}
-              {displayedTeam.map((member) => (
+             {displayedTeam.map((member, index) => (
                 <div
                   key={member.name}
                   style={{
@@ -826,11 +826,12 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
                     <div
                       style={{
                         ...styles.teamWorkloadBar,
-                        background:
-                          member.name ===
-                          "Unassigned"
-                            ? "#c4c9d1"
-                            : "#2f80ed",
+                       background:
+  member.name === "Unassigned"
+    ? "#c4c9d1"
+    : ["#2f80ed", "#8b5cf6", "#f59e0b", "#22c55e"][
+        index % 4
+      ],
                         width: `${
                           (member.metricCount /
                             maxMetric) *
@@ -850,40 +851,23 @@ Total {insightData?.overview?.total ?? sampleData.overview.total} cards        <
 
               {/* LEGEND */}
               <div style={styles.teamLegend}>
-                <span>
-                  <i
-                    style={{
-                      ...styles.legendDot,
-                      background:
-                        "#2f80ed",
-                    }}
-                  />
-                  Assigned
-                </span>
-
-                <span>
-                  <i
-                    style={{
-                      ...styles.legendDot,
-                      background:
-                        "#22c55e",
-                    }}
-                  />
-                  Completed
-                </span>
-
-                <span>
-                  <i
-                    style={{
-                      ...styles.legendDot,
-                      background:
-                        "#f59e0b",
-                    }}
-                  />
-                  Due
-                </span>
-              </div>
-
+  {[
+    { label: "Planning", color: "#2f80ed" },
+    { label: "In Progress", color: "#8b5cf6" },
+    { label: "Review", color: "#f59e0b" },
+    { label: "Completed", color: "#22c55e" },
+  ].map((item) => (
+    <span key={item.label}>
+      <i
+        style={{
+          ...styles.legendDot,
+          background: item.color,
+        }}
+      />
+      {item.label}
+    </span>
+  ))}
+</div>
               {/* KEY INSIGHT */}
               <div style={styles.keyInsight}>
                 <span
