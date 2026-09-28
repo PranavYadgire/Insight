@@ -220,7 +220,7 @@ if (dataError || !insightData) {
           </div>
 
           <div>
-            <h1 style={styles.title}>Insights</h1>
+            <h1 style={styles.title}>BoardPulse</h1>
             <p style={styles.subtitle}>Your board at a glance</p>
           </div>
         </div>
