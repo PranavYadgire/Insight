@@ -332,132 +332,516 @@ if (dataError || !insightData) {
                 </button>
               </div>
 
-{(() => {
-  const teamData = insightData?.team ?? sampleData.team;
-  const cards = insightData?.cards ?? [];
-  const lists = insightData?.lists ?? [];
+{(insightData?.team ?? sampleData.team).map((member) => (
+                  <div key={member.name} style={styles.stageRow}>
+                  <div style={styles.rowHeader}>
+                    <div style={styles.memberInfo}>
+                      <span
+                        style={{
+                          ...styles.memberAvatar,
+                         background:
+  member.name === "Unassigned"
+    ? "#c4c9d1"
+    : "#2f80ed",
+                          color:
+                            member.name === "Unassigned"
+                              ? "#5e6c84"
+                              : "#ffffff",
+                        }}
+                      >
+                        {member.name === "Unassigned"
+                          ? "•"
+                          : member.name.charAt(0)}
+                      </span>
 
-  const stageNames = [
-    ...new Set([
-      ...lists.map((list) => list.name),
-      ...cards.map((card) => card.listName).filter(Boolean),
-    ]),
-  ];
+                      <span>{member.name}</span>
+                    </div>
 
-  const stageColors = [
-    "#2f80ed",
-    "#8b5cf6",
-    "#f59e0b",
-    "#22c55e",
-    "#06b6d4",
-    "#ec4899",
-    "#64748b",
-    "#84cc16",
-  ];
+                    <strong>{member.count}</strong>
+                  </div>
 
-  const maxCount = Math.max(
-    1,
-    ...teamData.map((member) => member.count || 0)
-  );
+                  <div style={styles.progressBackground}>
+                    <div
+                      style={{
+                        ...styles.progressBar,
+                        background:
+                          member.name === "Surbhi"
+                            ? "#0c66e4"
+                            : member.name === "Amit"
+                            ? "#8b5cf6"
+                            : member.name === "Rahul"
+                            ? "#f59e0b"
+                            : member.name === "Priya"
+                            ? "#22c55e"
+                            : "#9ca3af",
+                        width: `${
+                          (member.count /
+                            Math.max(
+                              ...sampleData.team.map((m) => m.count)
+                            )) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
 
-  const getMemberCards = (member) => {
-    if (member.name === "Unassigned") {
-      return cards.filter(
-        (card) => !card.idMembers || card.idMembers.length === 0
-      );
-    }
+          {/* NEEDS ATTENTION */}
+          <div style={styles.panel}>
+            <div style={styles.panelHeader}>
+              <h2 style={styles.panelTitle}>Needs Attention</h2>
 
-    return cards.filter((card) =>
-      card.memberNames?.includes(member.name)
-    );
-  };
-
-  return (
-    <>
-      {teamData.map((member) => {
-        const memberCards = getMemberCards(member);
-
-        return (
-          <div
-            key={member.id ?? member.name}
-            style={styles.teamWorkloadRow}
-          >
-            <div style={styles.teamMemberName}>
-              <span
-                style={{
-                  ...styles.memberAvatar,
-                  background:
-                    member.name === "Unassigned"
-                      ? "#dfe1e6"
-                      : "#0c66e4",
-                  color:
-                    member.name === "Unassigned"
-                      ? "#5e6c84"
-                      : "#ffffff",
-                }}
+              <button
+                style={styles.viewAllButton}
+                onClick={() => setActiveTab("Needs Attention")}
               >
-                {member.name === "Unassigned"
-                  ? "•"
-                  : member.name.charAt(0)}
+                View all →
+              </button>
+            </div>
+
+            <div style={styles.attentionGrid}>
+  <AttentionCard
+    type="overdue"
+    icon="!"
+    title={`${insightData?.overview?.overdue ?? 0} overdue cards`}
+    description="These cards are past their due date"
+  />
+
+  <AttentionCard
+    type="due"
+    icon="◷"
+    title={`${insightData?.overview?.dueThisWeek ?? 0} cards due this week`}
+    description="Due in the next 7 days"
+  />
+
+  <AttentionCard
+    type="unassigned"
+    icon="●"
+    title={`${
+      insightData?.counts?.unassigned ?? 0
+    } unassigned cards`}
+    description="No member assigned"
+  />
+
+  <AttentionCard
+    type="noDate"
+    icon="▣"
+    title={`${
+      insightData?.counts?.noDueDate ?? 0
+    } cards without due date`}
+    description="Consider adding a due date"
+  />
+</div>
+          </div>
+
+          {/* TIP */}
+          <div style={styles.tip}>
+            <span style={styles.tipIcon}>♧</span>
+            <span>
+              <strong>Tip:</strong> Click on any insight to view the relevant
+              cards on your board.
+            </span>
+          </div>
+        </>
+      )}
+
+      {/* ================= BY STAGE ================= */}
+      {activeTab === "By Stage" && (
+  <>
+    {/* TOP BY-STAGE SECTION */}
+    <div style={styles.stageTopGrid}>
+
+      {/* CARDS BY STAGE */}
+      <div style={styles.stageChartPanel}>
+        <h2 style={styles.panelTitle}>Cards by Stage</h2>
+
+        <div style={styles.chartSubtitle}>
+Total {insightData?.overview?.total ?? sampleData.overview.total} cards        </div>
+
+        <div style={styles.chartArea}>
+  {(insightData?.stages ?? sampleData.stages).map((stage, index) => (
+            <div key={stage.name} style={styles.chartColumn}>
+
+              <strong style={styles.chartValue}>
+                {stage.count}
+              </strong>
+
+              <div
+                style={{
+                  ...styles.chartBar,
+                  height: `${stage.count * 12}px`,
+                  background: ["#2f80ed", "#8b5cf6", "#f59e0b", "#22c55e"][
+  index % 4
+],
+                }}
+              />
+
+              <span style={styles.chartLabel}>
+                {stage.name}
               </span>
 
-              <span>{member.name}</span>
             </div>
+          ))}
+        </div>
+      </div>
 
+      {/* STAGE BREAKDOWN */}
+      <div style={styles.stageBreakdownPanel}>
+        <h2 style={styles.panelTitle}>Stage breakdown</h2>
+
+{(insightData?.stages ?? sampleData.stages).map((stage, index) => (
             <div
-              style={{
-                ...styles.teamWorkloadBarBackground,
-                display: "flex",
-              }}
-            >
-              {stageNames.map((stageName, index) => {
-                const count = memberCards.filter(
-                  (card) => card.listName === stageName
-                ).length;
+            key={stage.name}
+            style={styles.breakdownRow}
+          >
+            <div style={styles.breakdownTop}>
+              <span>{stage.name}</span>
 
-                if (count === 0) return null;
-
-                return (
-                  <div
-                    key={stageName}
-                    title={`${stageName}: ${count} cards`}
-                    style={{
-                      ...styles.teamWorkloadBar,
-                      background:
-                        stageColors[index % stageColors.length],
-                      width: `${(count / maxCount) * 100}%`,
-                      flexShrink: 0,
-                      borderRadius: 0,
-                    }}
-                  />
-                );
-              })}
+              <span>
+                <strong>{stage.count} cards</strong>
+                <span style={styles.percentage}>
+                  {Math.round(
+(stage.count / (insightData?.overview?.total ?? sampleData.overview.total)) * 100                  )}
+                  %
+                </span>
+              </span>
             </div>
 
-            <strong style={styles.teamCount}>
-              {member.count}
-            </strong>
+            <div style={styles.progressBackground}>
+              <div
+                style={{
+                  ...styles.progressBar,
+                  background: getStageColor(stage.name),
+                 width: `${
+  (stage.count /
+    (insightData?.overview?.total ?? sampleData.overview.total)) *
+  100
+}%`,
+                }}
+              />
+            </div>
           </div>
-        );
-      })}
-
-      <div style={styles.teamLegend}>
-        {stageNames.map((stageName, index) => (
-          <span key={stageName}>
-            <i
-              style={{
-                ...styles.legendDot,
-                background:
-                  stageColors[index % stageColors.length],
-              }}
-            />
-            {stageName}
-          </span>
         ))}
       </div>
-    </>
-  );
-})()}
+    </div>
+
+    {/* STAGE CARD LISTS */}
+    {/* STAGE CARD LISTS */}
+<div style={styles.stageCardsGrid}>
+
+  {(insightData?.stages ?? sampleData.stages).map((stage) => {
+    const stageCards = (insightData?.cards ?? []).filter(
+      (card) => card.listName === stage.name
+    );
+
+    const visibleCards = stageCards.slice(0, 5);
+    const remainingCards = stageCards.length - visibleCards.length;
+
+    return (
+      <div
+        key={stage.name}
+        style={styles.stageCardPanel}
+      >
+        <div style={styles.stageCardHeader}>
+          <div>
+            <span
+              style={{
+                ...styles.stageDot,
+                background: getStageColor(stage.name),
+              }}
+            />
+
+            <strong>
+              Cards in {stage.name} ({stage.count})
+            </strong>
+          </div>
+
+          <button
+  style={styles.viewAllButton}
+  onClick={() => setSelectedStage(stage.name)}
+>
+  View all →
+</button>
+        </div>
+
+        {visibleCards.length === 0 ? (
+          <div style={styles.moreCards}>
+            No cards in this stage
+          </div>
+        ) : (
+          visibleCards.map((card) => (
+            <div
+              key={card.id}
+              style={styles.cardListRow}
+              onClick={() =>
+                setSelectedCard({
+                  name: card.name,
+                  type: stage.name,
+                  date: card.displayDate,
+                })
+              }
+            >
+              <span>{card.name}</span>
+
+              <div style={styles.cardMeta}>
+                <span>▣ {card.displayDate}</span>
+
+                <span
+                  style={{
+                    ...styles.cardMember,
+                    background: "#64748b",
+                  }}
+                >
+                  {card.memberNames?.length
+                    ? card.memberNames[0].charAt(0)
+                    : "•"}
+                </span>
+
+                <span style={styles.arrow}>›</span>
+              </div>
+            </div>
+          ))
+        )}
+
+        {remainingCards > 0 && (
+  <div
+    style={{
+      ...styles.moreCards,
+      cursor: "pointer",
+    }}
+    onClick={() => setSelectedStage(stage.name)}
+  >
+    +{remainingCards} more cards
+  </div>
+)}
+      </div>
+    );
+  })}
+
+</div>
+
+    {/* TIP */}
+    <div style={styles.tip}>
+      <span style={styles.tipIcon}>♧</span>
+
+      <span>
+        <strong>Tip:</strong> Click on any stage or card to open it on your board.
+      </span>
+    </div>
+  </>
+)}
+
+      {/* ================= TEAM ================= */}
+      {/* ================= TEAM ================= */}
+{activeTab === "Team" && (
+  <>
+    {(() => {
+      const teamData = insightData?.team ?? sampleData.team;
+      const realCards = insightData?.cards ?? [];
+
+      const selectedMember =
+        teamData.find(
+          (member) => member.name === selectedTeamMember
+        ) || teamData[0];
+
+      const selectedMemberName =
+        selectedMember?.name || "Team member";
+
+      const getMemberCards = (memberName) => {
+        if (memberName === "Unassigned") {
+          return realCards.filter(
+            (card) =>
+              !card.idMembers ||
+              card.idMembers.length === 0
+          );
+        }
+
+        return realCards.filter((card) =>
+          card.memberNames?.includes(memberName)
+        );
+      };
+
+      const getMetricCount = (member, metric) => {
+        if (metric === "Cards assigned") {
+          return member.count;
+        }
+
+        const memberCards = getMemberCards(member.name);
+
+        if (metric === "Cards completed") {
+          return memberCards.filter(
+            (card) => card.isCompleted
+          ).length;
+        }
+
+        if (metric === "Due dates") {
+          return memberCards.filter(
+            (card) => card.due
+          ).length;
+        }
+
+        return member.count;
+      };
+
+      const displayedTeam = teamData.map((member) => ({
+        ...member,
+        metricCount: getMetricCount(
+          member,
+          teamMetric
+        ),
+      }));
+
+      const maxMetric = Math.max(
+        ...displayedTeam.map(
+          (member) => member.metricCount
+        ),
+        1
+      );
+
+      const selectedMemberCards =
+        getMemberCards(selectedMemberName);
+
+      const highestMember = [...displayedTeam].sort(
+        (a, b) => b.metricCount - a.metricCount
+      )[0];
+
+      const highestPercentage =
+        insightData?.overview?.total
+          ? Math.round(
+              (highestMember.metricCount /
+                insightData.overview.total) *
+                100
+            )
+          : 0;
+
+      const firstMemberCard =
+        selectedMemberCards[0];
+
+      return (
+        <>
+          <div style={styles.teamMainGrid}>
+
+            {/* LEFT: TEAM WORKLOAD */}
+            <div style={styles.teamWorkloadPanel}>
+
+              <div style={styles.teamPanelHeader}>
+                <div>
+                  <h2 style={styles.panelTitle}>
+                    Team workload
+                  </h2>
+
+                  <div style={styles.chartSubtitle}>
+                    Total{" "}
+                    {insightData?.overview?.total ??
+                      sampleData.overview.total}{" "}
+                    cards
+                  </div>
+                </div>
+
+                <select
+                  style={styles.teamSelect}
+                  value={teamMetric}
+                  onChange={(event) =>
+                    setTeamMetric(event.target.value)
+                  }
+                >
+                  <option value="Cards assigned">
+                    Cards assigned
+                  </option>
+
+                  <option value="Cards completed">
+                    Cards completed
+                  </option>
+
+                  <option value="Due dates">
+                    Due dates
+                  </option>
+                </select>
+              </div>
+
+              {/* TEAM MEMBERS */}
+             {displayedTeam.map((member, index) => (
+                <div
+                  key={member.name}
+                  style={{
+                    ...styles.teamWorkloadRow,
+                    cursor: "pointer",
+                    background:
+                      selectedMemberName ===
+                      member.name
+                        ? "#f4f7ff"
+                        : "transparent",
+                    borderRadius: "6px",
+                  }}
+                  onClick={() =>
+                    setSelectedTeamMember(
+                      member.name
+                    )
+                  }
+                >
+                  <div style={styles.teamMemberName}>
+
+                    <span
+                      style={{
+                        ...styles.memberAvatar,
+                        background:
+                          member.name ===
+                          "Unassigned"
+                            ? "#dfe1e6"
+                            : "#2f80ed",
+                        color:
+                          member.name ===
+                          "Unassigned"
+                            ? "#5e6c84"
+                            : "#ffffff",
+                      }}
+                    >
+                      {member.name ===
+                      "Unassigned"
+                        ? "•"
+                        : member.name
+                            .charAt(0)
+                            .toUpperCase()}
+                    </span>
+
+                    <span>
+                      {member.name}
+                    </span>
+                  </div>
+
+                  <div
+                    style={
+                      styles.teamWorkloadBarBackground
+                    }
+                  >
+                    <div
+                      style={{
+                        ...styles.teamWorkloadBar,
+                       background:
+  member.name === "Unassigned"
+    ? "#c4c9d1"
+    : ["#2f80ed", "#8b5cf6", "#f59e0b", "#22c55e"][
+        index % 4
+      ],
+                        width: `${
+                          (member.metricCount /
+                            maxMetric) *
+                          100
+                        }%`,
+                      }}
+                    />
+                  </div>
+
+                  <strong
+                    style={styles.teamCount}
+                  >
+                    {member.metricCount}
+                  </strong>
+                </div>
+              ))}
 
             {/* LEGEND */}
 <div style={styles.teamLegend}>
